@@ -151,6 +151,25 @@ describe('normaliseSeason 的降級行為', () => {
     expect(sessions?.[0]).toEqual({ kind: 'race', startsAt: '2026-03-08T00:00:00.000Z' });
   });
 
+  it.each([
+    ['../../../evil', '路徑片段'],
+    ['2026/../../etc', '夾帶斜線'],
+    ['20261', '五位數'],
+    ['', '空字串'],
+    ['abcd', '非數字'],
+  ])('拒絕不合法的球季 %j（%s）', (season) => {
+    const races: RawRacesResponse = { MRData: { RaceTable: { season, Races: [baseRace] } } };
+
+    expect(() =>
+      normaliseSeason({
+        races,
+        driverStandings: emptyDriverStandings,
+        teamStandings: emptyTeamStandings,
+        fetchedAt: '2026-01-01T00:00:00.000Z',
+      }),
+    ).toThrow(/球季格式不合法/);
+  });
+
   it('球季尚未開賽時 completedRound 為 null 而非 0', () => {
     expect(seasonWith(baseRace).completedRound).toBeNull();
   });

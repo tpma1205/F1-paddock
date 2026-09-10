@@ -198,6 +198,22 @@ const toTeamStanding = (raw: RawConstructorStanding): TeamStanding => ({
   team: toTeamRef(raw.Constructor),
 });
 
+/**
+ * Season 必須是四位數年份。
+ *
+ * 這是領域不變量，但驗證的位置更關鍵：season 會成為快照的**檔名**
+ * （`snapshots/<season>.json`）與索引鍵，而它來自第三方回應。抓取腳本在
+ * GitHub Actions 中以 repo 寫入權限執行，若 season 挾帶路徑片段就能寫到
+ * checkout 的任意位置。在第三方資料轉為內部資料的邊界上擋掉，比在每個
+ * 使用點各自防禦可靠。
+ */
+const assertValidSeason = (season: string): string => {
+  if (!/^\d{4}$/.test(season)) {
+    throw new Error(`API 回傳的球季格式不合法：${JSON.stringify(season)}（預期四位數年份）`);
+  }
+  return season;
+};
+
 export interface NormaliseInput {
   races: RawRacesResponse;
   driverStandings: RawDriverStandingsResponse;
@@ -224,7 +240,7 @@ export const normaliseSeason = ({
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
   return {
-    season: raceTable.season,
+    season: assertValidSeason(raceTable.season),
     completedRound: Number.isFinite(completedRound) && completedRound > 0 ? completedRound : null,
     fetchedAt,
     weekends: raceTable.Races.map(toWeekend).sort((a, b) => a.round - b.round),

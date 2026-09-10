@@ -8,7 +8,7 @@
  *    不該讓第三方服務的故障變成部署失敗。
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   normaliseSeason,
@@ -25,7 +25,21 @@ const BASE = 'https://api.jolpi.ca/ergast/f1/current';
  * 舊的一份原地留存即成封存 —— 不需要搬移或改寫任何資料。
  */
 const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'snapshots');
-const pathForSeason = (season: string): string => join(OUTPUT_DIR, `${season}.json`);
+
+/**
+ * 縱深防禦：season 已在 normaliseSeason 驗證為四位數年份，這裡再確認解析後的
+ * 路徑確實落在 OUTPUT_DIR 之內。
+ *
+ * 本腳本在 CI 中以 repo 寫入權限執行，寫入點是最後一道關卡 —— 就算日後有人
+ * 放寬了上游的驗證，也不該讓第三方回應決定寫到哪裡。
+ */
+const pathForSeason = (season: string): string => {
+  const target = resolve(join(OUTPUT_DIR, `${season}.json`));
+  if (!target.startsWith(resolve(OUTPUT_DIR) + sep)) {
+    throw new Error(`快照路徑越界：${JSON.stringify(season)}`);
+  }
+  return target;
+};
 
 const getJson = async <T>(path: string): Promise<T> => {
   const url = `${BASE}${path}`;
