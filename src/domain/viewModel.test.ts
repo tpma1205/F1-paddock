@@ -1,0 +1,155 @@
+import { describe, expect, it } from 'vitest';
+import { buildFixtureSnapshot } from '../data/__fixtures__/buildFixtureSnapshot.ts';
+import { buildViewModel } from './viewModel.ts';
+
+/**
+ * 這裡是本專案的**主要測試接縫**：Snapshot + 注入的「現在時間」 → View Model。
+ *
+ * 「現在時間」是顯式參數而非系統時鐘 —— 因為 Next Session 推導、Session 狀態、
+ * Off-season 降級這些行為在真實世界一年只發生一次（見 docs/adr/0004）。
+ */
+describe('buildViewModel', () => {
+  const snapshot = buildFixtureSnapshot();
+  const at = (iso: string) => buildViewModel(snapshot, new Date(iso));
+
+  describe('Next Session 推導', () => {
+    it('球季進行中，指向下一個尚未開始的場次', () => {
+      // 2026-09-10，第 13 站已結束，下一站馬德里的 FP1 在 09-11 11:30Z
+      const vm = at('2026-09-10T12:00:00Z');
+
+      expect(vm.nextSession?.session.kind).toBe('fp1');
+      expect(vm.nextSession?.weekend.round).toBe(14);
+      expect(vm.nextSession?.session.startsAt).toBe('2026-09-11T11:30:00.000Z');
+      expect(vm.isOffSeason).toBe(false);
+    });
+
+    it('倒數的毫秒數是距離開始的實際時間差', () => {
+      const vm = at('2026-09-11T10:30:00Z');
+      expect(vm.nextSession?.msUntilStart).toBe(60 * 60 * 1000);
+    });
+
+    it('某節進行中時，仍指向該節但標記為 live 且倒數歸零', () => {
+      // FP1 11:30Z 開始，慣例時長 60 分鐘
+      const vm = at('2026-09-11T12:00:00Z');
+
+      expect(vm.nextSession?.session.kind).toBe('fp1');
+      expect(vm.nextSession?.session.status).toBe('live');
+      expect(vm.nextSession?.msUntilStart).toBe(0);
+    });
+
+    it('該節結束後跨到當天稍晚的下一節', () => {
+      const vm = at('2026-09-11T12:31:00Z');
+
+      expect(vm.nextSession?.session.kind).toBe('fp2');
+      expect(vm.nextSession?.weekend.round).toBe(14);
+    });
+
+    it('當天最後一節結束後跨到隔天的第一節', () => {
+      // FP2 15:00Z 起 60 分鐘，隔天 FP3 在 09-12 10:30Z
+      const vm = at('2026-09-11T16:30:00Z');
+
+      expect(vm.nextSession?.session.kind).toBe('fp3');
+      expect(vm.nextSession?.session.startsAt).toBe('2026-09-12T10:30:00.000Z');
+    });
+
+    it('正賽結束後跨到下一個 Round', () => {
+      // 馬德里正賽 09-13 13:00Z 起 120 分鐘
+      const vm = at('2026-09-13T15:01:00Z');
+
+      expect(vm.nextSession?.weekend.round).toBe(15);
+      expect(vm.nextSession?.session.kind).toBe('fp1');
+      expect(vm.focusWeekend?.circuit.id).toBe('baku');
+    });
+
+    it('球季開始前指向第一站的第一節', () => {
+      const vm = at('2026-01-15T00:00:00Z');
+
+      expect(vm.nextSession?.weekend.round).toBe(1);
+      expect(vm.nextSession?.session.kind).toBe('fp1');
+      expect(vm.isOffSeason).toBe(false);
+    });
+  });
+
+  describe('Session 狀態', () => {
+    it('把場次分為已結束、進行中與未開始', () => {
+      // 排位賽 09-12 14:00Z 進行中
+      const vm = at('2026-09-12T14:30:00Z');
+      const statuses = vm.focusWeekend?.sessions.map((s) => [s.kind, s.status]);
+
+      expect(statuses).toEqual([
+        ['fp1', 'finished'],
+        ['fp2', 'finished'],
+        ['fp3', 'finished'],
+        ['qualifying', 'live'],
+        ['race', 'upcoming'],
+      ]);
+    });
+
+    it('由慣例時長推導結束時間，因為 API 不提供', () => {
+      const vm = at('2026-09-10T12:00:00Z');
+      const race = vm.focusWeekend?.sessions.find((s) => s.kind === 'race');
+
+      // 正賽 13:00Z + 120 分鐘
+      expect(race?.endsAt).toBe('2026-09-13T15:00:00.000Z');
+    });
+
+    it('開始的那一刻即為進行中', () => {
+      const vm = at('2026-09-11T11:30:00Z');
+      expect(vm.nextSession?.session.status).toBe('live');
+    });
+
+    it('結束的那一刻即為已結束', () => {
+      const vm = at('2026-09-11T12:30:00Z');
+      expect(vm.nextSession?.session.kind).toBe('fp2');
+    });
+  });
+
+  describe('Sprint Weekend', () => {
+    it('聚焦的週末呈現衝刺賽制的場次組成，不出現 FP2／FP3', () => {
+      // 第 17 站新加坡為衝刺賽週末
+      const vm = at('2026-10-08T00:00:00Z');
+
+      expect(vm.focusWeekend?.round).toBe(17);
+      expect(vm.focusWeekend?.sessions.map((s) => s.kind)).toEqual([
+        'fp1',
+        'sprintQualifying',
+        'sprint',
+        'qualifying',
+        'race',
+      ]);
+    });
+
+    it('衝刺賽的慣例時長短於正賽', () => {
+      const vm = at('2026-10-08T00:00:00Z');
+      const sprint = vm.focusWeekend?.sessions.find((s) => s.kind === 'sprint');
+
+      // 衝刺賽 10-10 09:00Z + 30 分鐘
+      expect(sprint?.endsAt).toBe('2026-10-10T09:30:00.000Z');
+    });
+  });
+
+  describe('Off-season', () => {
+    it('本季最後一場正賽結束後，沒有 Next Session', () => {
+      // 阿布達比正賽 12-06 13:00Z 起 120 分鐘
+      const vm = at('2026-12-06T15:01:00Z');
+
+      expect(vm.nextSession).toBeNull();
+      expect(vm.focusWeekend).toBeNull();
+      expect(vm.isOffSeason).toBe(true);
+    });
+
+    it('最後一場正賽進行中時尚未進入 Off-season', () => {
+      const vm = at('2026-12-06T14:00:00Z');
+
+      expect(vm.isOffSeason).toBe(false);
+      expect(vm.nextSession?.session.status).toBe('live');
+    });
+  });
+
+  it('保留球季與抓取時間供畫面標示資料新鮮度', () => {
+    const vm = at('2026-09-10T12:00:00Z');
+
+    expect(vm.season).toBe('2026');
+    expect(vm.fetchedAt).toBe('2026-09-10T00:00:00.000Z');
+  });
+});
