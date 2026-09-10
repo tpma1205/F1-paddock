@@ -125,7 +125,16 @@ const toIso = (slot: RawSessionTime): string | null => {
  * 取出一個 Race Weekend 的場次。
  *
  * **場次組成一律由資料決定** —— Sprint Weekend 沒有 FP2／FP3，
- * 一般週末沒有衝刺賽，不可假設固定五節（見 CONTEXT.md 的 Sprint Weekend）。
+ * 一般週末沒有衝刺賽，不可假設固定五個場次（見 CONTEXT.md 的 Sprint Weekend）。
+ *
+ * 正賽與其他場次對「缺少時間」的處理**刻意不同**：
+ *
+ * - 練習賽／排位／衝刺賽缺少時間時**捨棄該場次**。捏一個午夜 UTC 出來會讓
+ *   畫面顯示一個看似真實、實際錯誤的開賽時間，比不顯示更糟。
+ * - 正賽缺少時間時**退回當日午夜 UTC**。Race Weekend 必須至少有正賽，
+ *   捨棄它會讓整站少掉一個站次；日期本身仍是正確的資訊。
+ *
+ * 當前球季的所有場次都有時間，這條路徑只在資料異常時才會走到。
  */
 const toSessions = (race: RawRace): Session[] => {
   const sessions: Session[] = [];
@@ -173,7 +182,7 @@ const toDriverStanding = (raw: RawDriverStanding): DriverStanding => ({
   wins: Number(raw.wins),
   driver: {
     id: raw.Driver.driverId,
-    code: raw.Driver.code ?? raw.Driver.familyName.slice(0, 3).toUpperCase(),
+    code: raw.Driver.code ?? null,
     permanentNumber: raw.Driver.permanentNumber ?? null,
     givenName: raw.Driver.givenName,
     familyName: raw.Driver.familyName,

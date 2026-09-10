@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatSessionTime, formatTimeZoneLabel, toCountdown } from './formatting.ts';
+import { formatFetchedAt, formatTimeZoneLabel, toCountdown } from './formatting.ts';
 
 describe('toCountdown', () => {
   it('把毫秒差拆成天時分秒', () => {
@@ -24,16 +24,15 @@ describe('toCountdown', () => {
 describe('時區呈現', () => {
   const madridFp1 = '2026-09-11T11:30:00.000Z';
 
-  it('把 UTC 場次時間換算成使用者時區', () => {
-    // 11:30Z 在台北是 19:30
-    expect(formatSessionTime(madridFp1, 'Asia/Taipei')).toContain('19:30');
-    // 同一時刻在倫敦是 12:30（英國夏令時間）
-    expect(formatSessionTime(madridFp1, 'Europe/London')).toContain('12:30');
-  });
-
   it('標示出時區名稱與偏移，讓自動偵測的結果是可見的', () => {
     const label = formatTimeZoneLabel(new Date(madridFp1), 'Asia/Taipei');
     expect(label).toContain('GMT+8');
     expect(label.length).toBeGreaterThan('GMT+8'.length);
+  });
+
+  it('把 UTC 換算成使用者所在時區', () => {
+    // 11:30Z 在台北是隔日凌晨前的 19:30，在倫敦是 12:30（英國夏令時間）
+    expect(formatFetchedAt(madridFp1, 'Asia/Taipei')).toContain('19:30');
+    expect(formatFetchedAt(madridFp1, 'Europe/London')).toContain('12:30');
   });
 });

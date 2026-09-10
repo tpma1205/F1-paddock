@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { buildFixtureSnapshot } from './__fixtures__/buildFixtureSnapshot.ts';
+import {
+  normaliseSeason,
+  type RawDriverStandingsResponse,
+  type RawRacesResponse,
+  type RawTeamStandingsResponse,
+} from './jolpica.ts';
 
 describe('normaliseSeason', () => {
   const snapshot = buildFixtureSnapshot();
@@ -27,7 +33,7 @@ describe('normaliseSeason', () => {
     expect(typeof madrid?.circuit.lat).toBe('number');
   });
 
-  it('一般週末產出 FP1／FP2／FP3／排位／正賽五節', () => {
+  it('一般週末產出 FP1／FP2／FP3／排位／正賽五個場次', () => {
     const australia = snapshot.weekends.find((w) => w.round === 1);
     expect(australia?.sessions.map((s) => s.kind)).toEqual([
       'fp1',
@@ -88,5 +94,110 @@ describe('normaliseSeason', () => {
       expect(typeof standing.points).toBe('number');
       expect(typeof standing.position).toBe('number');
     }
+  });
+});
+
+/**
+ * 資料異常時的降級行為。
+ *
+ * 當前球季的所有場次都有時間，這些路徑只在 API 資料殘缺時才走到 ——
+ * 正因為它們不會自然發生，才必須明確地測。
+ */
+describe('normaliseSeason 的降級行為', () => {
+  const emptyDriverStandings: RawDriverStandingsResponse = {
+    MRData: { StandingsTable: { season: '2026', round: '0', StandingsLists: [] } },
+  };
+  const emptyTeamStandings: RawTeamStandingsResponse = {
+    MRData: { StandingsTable: { season: '2026', round: '0', StandingsLists: [] } },
+  };
+
+  const seasonWith = (race: RawRacesResponse['MRData']['RaceTable']['Races'][number]) =>
+    normaliseSeason({
+      races: { MRData: { RaceTable: { season: '2026', Races: [race] } } },
+      driverStandings: emptyDriverStandings,
+      teamStandings: emptyTeamStandings,
+      fetchedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+  const baseRace = {
+    season: '2026',
+    round: '1',
+    raceName: 'Test Grand Prix',
+    Circuit: {
+      circuitId: 'test',
+      circuitName: 'Test Circuit',
+      Location: { lat: '0', long: '0', locality: 'Nowhere', country: 'Testland' },
+    },
+    date: '2026-03-08',
+    time: '04:00:00Z',
+  };
+
+  it('捨棄缺少時間的練習賽，而非捏造一個看似真實的開賽時間', () => {
+    const snapshot = seasonWith({
+      ...baseRace,
+      FirstPractice: { date: '2026-03-06' },
+      SecondPractice: { date: '2026-03-06', time: '05:00:00Z' },
+    });
+
+    expect(snapshot.weekends[0]?.sessions.map((s) => s.kind)).toEqual(['fp2', 'race']);
+  });
+
+  it('正賽缺少時間時退回當日午夜，因為捨棄它會讓整個站次消失', () => {
+    const { time: _omitted, ...raceWithoutTime } = baseRace;
+    const snapshot = seasonWith(raceWithoutTime);
+    const sessions = snapshot.weekends[0]?.sessions;
+
+    expect(sessions).toHaveLength(1);
+    expect(sessions?.[0]).toEqual({ kind: 'race', startsAt: '2026-03-08T00:00:00.000Z' });
+  });
+
+  it('球季尚未開賽時 completedRound 為 null 而非 0', () => {
+    expect(seasonWith(baseRace).completedRound).toBeNull();
+  });
+
+  it('積分榜為空時回傳空陣列而非拋錯', () => {
+    const snapshot = seasonWith(baseRace);
+
+    expect(snapshot.driverStandings).toEqual([]);
+    expect(snapshot.teamStandings).toEqual([]);
+  });
+
+  it('車手缺少三字母縮寫時為 null，不由姓氏捏造', () => {
+    const snapshot = normaliseSeason({
+      races: { MRData: { RaceTable: { season: '2026', Races: [baseRace] } } },
+      driverStandings: {
+        MRData: {
+          StandingsTable: {
+            season: '2026',
+            round: '1',
+            StandingsLists: [
+              {
+                DriverStandings: [
+                  {
+                    position: '1',
+                    points: '25',
+                    wins: '1',
+                    Driver: {
+                      driverId: 'nocode',
+                      givenName: 'No',
+                      familyName: 'Codeman',
+                      nationality: 'Testish',
+                    },
+                    Constructors: [
+                      { constructorId: 'test', name: 'Test', nationality: 'Testish' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      teamStandings: emptyTeamStandings,
+      fetchedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(snapshot.driverStandings[0]?.driver.code).toBeNull();
+    expect(snapshot.driverStandings[0]?.driver.permanentNumber).toBeNull();
   });
 });

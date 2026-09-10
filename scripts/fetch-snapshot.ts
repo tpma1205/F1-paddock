@@ -7,7 +7,7 @@
  * 2. **抓取失敗時沿用既有 Snapshot** —— Jolpica 由志工營運，暫時失效是可預期的，
  *    不該讓第三方服務的故障變成部署失敗。
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -18,7 +18,14 @@ import {
 } from '../src/data/jolpica.ts';
 
 const BASE = 'https://api.jolpi.ca/ergast/f1/current';
-const OUTPUT = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'snapshot.json');
+
+/**
+ * 快照以 season 為索引鍵存放（`snapshots/<season>.json`，見 docs/adr/0004）。
+ * 跨年時 `/current/` 指向新球季，本腳本便寫進一份新檔案，
+ * 舊的一份原地留存即成封存 —— 不需要搬移或改寫任何資料。
+ */
+const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'snapshots');
+const pathForSeason = (season: string): string => join(OUTPUT_DIR, `${season}.json`);
 
 const getJson = async <T>(path: string): Promise<T> => {
   const url = `${BASE}${path}`;
@@ -45,17 +52,26 @@ const main = async (): Promise<void> => {
       fetchedAt: new Date().toISOString(),
     });
 
-    writeFileSync(OUTPUT, `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+    writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
     console.log(
       `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站`,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const existing = existsSync(OUTPUT_DIR)
+      ? readdirSync(OUTPUT_DIR)
+          .filter((name) => name.endsWith('.json'))
+          .sort()
+      : [];
+    const newest = existing.at(-1);
 
-    if (existsSync(OUTPUT)) {
-      const existing = JSON.parse(readFileSync(OUTPUT, 'utf8')) as { fetchedAt?: string };
+    if (newest) {
+      const { fetchedAt } = JSON.parse(readFileSync(join(OUTPUT_DIR, newest), 'utf8')) as {
+        fetchedAt?: string;
+      };
       console.warn(`⚠ 抓取失敗（${message}）`);
-      console.warn(`  沿用既有快照（抓取於 ${existing.fetchedAt ?? '未知時間'}），建置繼續。`);
+      console.warn(`  沿用既有快照 ${newest}（抓取於 ${fetchedAt ?? '未知時間'}），建置繼續。`);
       return;
     }
 

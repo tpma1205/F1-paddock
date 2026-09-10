@@ -16,17 +16,6 @@ export const SESSION_LABEL: Record<SessionKind, string> = {
   race: '正賽',
 };
 
-/** 場次表上使用的簡稱。 */
-export const SESSION_SHORT_LABEL: Record<SessionKind, string> = {
-  fp1: 'FP1',
-  fp2: 'FP2',
-  fp3: 'FP3',
-  sprintQualifying: '衝刺排位',
-  sprint: '衝刺賽',
-  qualifying: '排位賽',
-  race: '正賽',
-};
-
 export interface Countdown {
   days: number;
   hours: number;
@@ -50,7 +39,11 @@ export const pad2 = (value: number): string => String(value).padStart(2, '0');
 /** 使用者所在時區的 IANA 名稱，例如 "Asia/Taipei"。 */
 export const resolveTimeZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-const partOf = (date: Date, timeZone: string, timeZoneName: 'long' | 'shortOffset'): string =>
+const timeZonePart = (
+  date: Date,
+  timeZone: string,
+  timeZoneName: 'long' | 'shortOffset',
+): string =>
   new Intl.DateTimeFormat('zh-TW', { timeZone, timeZoneName })
     .formatToParts(date)
     .find((part) => part.type === 'timeZoneName')?.value ?? '';
@@ -62,22 +55,12 @@ const partOf = (date: Date, timeZone: string, timeZoneName: 'long' | 'shortOffse
  * 換算成了非預期的時區（見 docs/spec/0001）。
  */
 export const formatTimeZoneLabel = (date: Date, timeZone: string): string => {
-  const long = partOf(date, timeZone, 'long');
-  const offset = partOf(date, timeZone, 'shortOffset');
+  const long = timeZonePart(date, timeZone, 'long');
+  const offset = timeZonePart(date, timeZone, 'shortOffset');
   return [long, offset].filter(Boolean).join(' ') || timeZone;
 };
 
-/** 場次時間，例如「週五 19:30」。 */
-export const formatSessionTime = (iso: string, timeZone: string): string =>
-  new Intl.DateTimeFormat('zh-TW', {
-    timeZone,
-    weekday: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  }).format(new Date(iso));
-
-/** 資料新鮮度標示，例如「2026/09/10 08:00」。 */
+/** 資料新鮮度標示，例如「2026/09/10 22:52」。 */
 export const formatFetchedAt = (iso: string, timeZone: string): string =>
   new Intl.DateTimeFormat('zh-TW', {
     timeZone,

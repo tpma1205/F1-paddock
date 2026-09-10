@@ -28,7 +28,7 @@ describe('buildViewModel', () => {
       expect(vm.nextSession?.msUntilStart).toBe(60 * 60 * 1000);
     });
 
-    it('某節進行中時，仍指向該節但標記為 live 且倒數歸零', () => {
+    it('某個場次進行中時，仍指向該場次但標記為 live 且倒數歸零', () => {
       // FP1 11:30Z 開始，慣例時長 60 分鐘
       const vm = at('2026-09-11T12:00:00Z');
 
@@ -37,14 +37,14 @@ describe('buildViewModel', () => {
       expect(vm.nextSession?.msUntilStart).toBe(0);
     });
 
-    it('該節結束後跨到當天稍晚的下一節', () => {
+    it('該場次結束後跨到當天稍晚的下一個場次', () => {
       const vm = at('2026-09-11T12:31:00Z');
 
       expect(vm.nextSession?.session.kind).toBe('fp2');
       expect(vm.nextSession?.weekend.round).toBe(14);
     });
 
-    it('當天最後一節結束後跨到隔天的第一節', () => {
+    it('當天最後一個場次結束後跨到隔天的第一個場次', () => {
       // FP2 15:00Z 起 60 分鐘，隔天 FP3 在 09-12 10:30Z
       const vm = at('2026-09-11T16:30:00Z');
 
@@ -61,7 +61,7 @@ describe('buildViewModel', () => {
       expect(vm.focusWeekend?.circuit.id).toBe('baku');
     });
 
-    it('球季開始前指向第一站的第一節', () => {
+    it('球季開始前指向第一站的第一個場次', () => {
       const vm = at('2026-01-15T00:00:00Z');
 
       expect(vm.nextSession?.weekend.round).toBe(1);
@@ -125,6 +125,23 @@ describe('buildViewModel', () => {
 
       // 衝刺賽 10-10 09:00Z + 30 分鐘
       expect(sprint?.endsAt).toBe('2026-10-10T09:30:00.000Z');
+    });
+
+    it('Next Session 依序推進衝刺賽制的場次，而非退回一般週末的順序', () => {
+      // 新加坡：FP1 10-09 08:30Z、衝刺排位 10-09 12:30Z、
+      //         衝刺賽 10-10 09:00Z、排位 10-10 13:00Z、正賽 10-11 12:00Z
+      expect(at('2026-10-09T10:00:00Z').nextSession?.session.kind).toBe('sprintQualifying');
+      expect(at('2026-10-09T13:20:00Z').nextSession?.session.kind).toBe('sprint');
+      expect(at('2026-10-10T09:35:00Z').nextSession?.session.kind).toBe('qualifying');
+      expect(at('2026-10-10T14:05:00Z').nextSession?.session.kind).toBe('race');
+    });
+
+    it('衝刺賽週末進行中時，聚焦的仍是該站而非下一站', () => {
+      const vm = at('2026-10-10T09:10:00Z');
+
+      expect(vm.focusWeekend?.round).toBe(17);
+      expect(vm.nextSession?.session.kind).toBe('sprint');
+      expect(vm.nextSession?.session.status).toBe('live');
     });
   });
 

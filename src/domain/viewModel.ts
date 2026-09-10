@@ -54,28 +54,23 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   // 用「尚未結束」而非「尚未開始」，是為了讓正在進行中的場次仍是聚焦對象，
   // 畫面才能顯示「進行中」而不是跳過它去倒數下一節。
   for (const weekend of snapshot.weekends) {
-    for (const session of weekend.sessions) {
-      if (endOf(session) <= nowMs) continue;
+    const weekendView = toWeekendView(weekend, nowMs);
+    const sessionView = weekendView.sessions.find((session) => session.status !== 'finished');
 
-      const weekendView = toWeekendView(weekend, nowMs);
-      const sessionView = weekendView.sessions.find(
-        (candidate) => candidate.startsAt === session.startsAt && candidate.kind === session.kind,
-      );
-      /* c8 ignore next -- weekendView 由同一份 sessions 建出，必定找得到 */
-      if (!sessionView) continue;
+    // 整個週末都已結束 —— 往下一個 Round 找。
+    if (!sessionView) continue;
 
-      return {
-        season: snapshot.season,
-        fetchedAt: snapshot.fetchedAt,
-        focusWeekend: weekendView,
-        nextSession: {
-          weekend: weekendView,
-          session: sessionView,
-          msUntilStart: Math.max(0, Date.parse(session.startsAt) - nowMs),
-        },
-        isOffSeason: false,
-      };
-    }
+    return {
+      season: snapshot.season,
+      fetchedAt: snapshot.fetchedAt,
+      focusWeekend: weekendView,
+      nextSession: {
+        weekend: weekendView,
+        session: sessionView,
+        msUntilStart: Math.max(0, Date.parse(sessionView.startsAt) - nowMs),
+      },
+      isOffSeason: false,
+    };
   }
 
   // 本季所有場次都已結束 —— 進入 Off-season。

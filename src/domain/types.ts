@@ -19,7 +19,7 @@ export type SessionKind =
 /**
  * 各 Session 的慣例時長（分鐘）。
  *
- * Jolpica **只提供開始時間、不提供結束時間**，因此「某節是否正在進行中」
+ * Jolpica **只提供開始時間、不提供結束時間**，因此「某個場次是否正在進行中」
  * 只能由開始時間加上慣例時長推導。這些數字來自 F1 賽制規章的正常情況，
  * 不考慮紅旗中斷或延賽 —— 它們的用途僅是驅動「進行中 / 已結束」的顯示，
  * 不是精準的賽事計時。
@@ -67,13 +67,14 @@ export interface RaceWeekend {
   /** 正式名稱（英文），例如 "Spanish Grand Prix"。中文譯名由對照表另行提供。 */
   name: string;
   circuit: Circuit;
-  /** 依時間排序；Sprint Weekend 的組成由資料決定，不可假設固定五節。 */
+  /** 依時間排序；Sprint Weekend 的組成由資料決定，不可假設固定五個場次。 */
   sessions: Session[];
 }
 
 export interface DriverRef {
   id: string;
-  code: string;
+  /** 三字母縮寫（如 "ANT"）。API 未提供時為 null —— 不由姓氏捏造。 */
+  code: string | null;
   permanentNumber: string | null;
   givenName: string;
   familyName: string;
@@ -140,7 +141,7 @@ export interface WeekendView {
 export interface NextSession {
   weekend: WeekendView;
   session: SessionView;
-  /** 距離開始的毫秒數；若該節正在進行中則為 0。 */
+  /** 距離開始的毫秒數；若該場次正在進行中則為 0。 */
   msUntilStart: number;
 }
 
