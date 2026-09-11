@@ -1,9 +1,14 @@
-import type { JSX } from 'react';
-import { motion } from 'motion/react';
+import { useRef, type JSX } from 'react';
+import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import type { ViewModel } from '../domain/types.ts';
 import { useEntrance } from '../app/motion.ts';
+import { PARALLAX_QUERY, useMediaQuery } from '../app/useMediaQuery.ts';
 import { SessionPanel } from '../app/SessionPanel.tsx';
 import { StandingsSection } from '../app/StandingsSection.tsx';
+import { PreviewStrip } from '../app/PreviewStrip.tsx';
+import { TeamCard } from '../app/cards/TeamCard.tsx';
+import { DriverCard } from '../app/cards/DriverCard.tsx';
+import { CircuitCard } from '../app/cards/CircuitCard.tsx';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { localisedCircuit, localisedRaceWeekend } from '../data/localisation.ts';
 import { SESSION_LABEL, pad2, toCountdown } from '../app/formatting.ts';
@@ -14,14 +19,42 @@ interface HomePageProps {
   timeZoneLabel: string;
 }
 
+const PREVIEW_COUNT = 6;
+
 export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps): JSX.Element => {
   const { container, item } = useEntrance();
-  const { season, nextSession, focusWeekend, isOffSeason, drivers, teams } = viewModel;
+  const { season, nextSession, focusWeekend, isOffSeason, drivers, teams, circuits } = viewModel;
   const completedRound = viewModel.weekends.filter((w) => w.raceStatus === 'finished').length || null;
+
+  // 視差：前景（標題）往上走得比背景（暈光）快。只在寬螢幕且未要求減少動畫時啟用。
+  const heroRef = useRef<HTMLElement>(null);
+  const wide = useMediaQuery(PARALLAX_QUERY);
+  const reduced = useReducedMotion() ?? false;
+  const parallax = wide && !reduced;
+  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
+  const foregroundY = useTransform(scrollYProgress, [0, 1], [0, -90]);
+  const glowY = useTransform(scrollYProgress, [0, 1], [0, 60]);
+  const glowOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.35]);
+
+  // 各預覽區的代表色：領先車隊；賽道沒有車隊，回到骨幹紅。
+  const leaderColour = teams[0]?.colour;
+  const leaderDriverColour = drivers[0]?.team?.colour;
 
   return (
     <>
-      <motion.section className="hero" variants={container} initial="hidden" animate="shown">
+      <motion.section
+        className="hero"
+        ref={heroRef}
+        variants={container}
+        initial="hidden"
+        animate="shown"
+      >
+        <motion.div
+          className="hero__glow"
+          aria-hidden="true"
+          style={parallax ? { y: glowY, opacity: glowOpacity } : {}}
+        />
+        <motion.div className="hero__content" style={parallax ? { y: foregroundY } : {}}>
         <motion.p className="hero__eyebrow" variants={item}>
           {season} 賽季
           {focusWeekend && <> · 第 {focusWeekend.round} 站</>}
@@ -70,6 +103,7 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
             </motion.div>
           </>
         )}
+        </motion.div>
       </motion.section>
 
       {focusWeekend && nextSession && (
@@ -83,6 +117,24 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
       )}
 
       <StandingsSection season={season} completedRound={completedRound} drivers={drivers} teams={teams} />
+
+      <PreviewStrip title="車隊" titleEn="Teams" href="/teams" accent={leaderColour ?? undefined}>
+        {teams.slice(0, PREVIEW_COUNT).map((team) => (
+          <TeamCard key={team.id} team={team} variants={item} />
+        ))}
+      </PreviewStrip>
+
+      <PreviewStrip title="車手" titleEn="Drivers" href="/drivers" accent={leaderDriverColour ?? undefined}>
+        {drivers.slice(0, PREVIEW_COUNT).map((entry) => (
+          <DriverCard key={entry.driver.id} entry={entry} colour={entry.team?.colour ?? null} variants={item} />
+        ))}
+      </PreviewStrip>
+
+      <PreviewStrip title="賽道" titleEn="Circuits" href="/circuits">
+        {circuits.slice(0, PREVIEW_COUNT).map((entry) => (
+          <CircuitCard key={entry.circuit.id} entry={entry} variants={item} />
+        ))}
+      </PreviewStrip>
     </>
   );
 };

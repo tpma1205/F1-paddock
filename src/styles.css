@@ -61,25 +61,35 @@ body {
   flex-direction: column;
 }
 
-/* Hero 背後極淡的紅色暈光 —— 給版面一個重心，而不是一片死黑。 */
-.page::before {
+/*
+ * 區塊色層：整頁一層極淡的顏色，跟著目前區塊的代表色走（--section-accent
+ * 由 ScrollProgress 依 data-accent 設定）。滾到車隊區時整頁滲入一點該隊的顏色。
+ *
+ * 這是本站唯一以 background-color 過渡的動畫 —— 單一 fixed 元素、不影響版面，
+ * 代價可忽略；其餘動畫一律 transform／opacity。
+ */
+.page::after {
   content: '';
   position: fixed;
-  inset: 0 0 auto;
-  height: 70vh;
-  background: radial-gradient(
-    62% 58% at 50% -8%,
-    rgb(var(--f1-red-rgb) / 0.16) 0%,
-    rgb(var(--f1-red-rgb) / 0.04) 42%,
-    transparent 72%
-  );
+  inset: 0;
+  background: var(--section-accent, var(--f1-red));
+  opacity: 0.045;
   pointer-events: none;
   z-index: 0;
+  transition: background-color 0.9s ease;
 }
 
 .page > * {
   position: relative;
   z-index: 1;
+}
+
+/* 使用者要求減少動畫時，區塊色層不再變色 */
+@media (prefers-reduced-motion: reduce) {
+  .page::after {
+    transition: none;
+    background: var(--f1-red);
+  }
 }
 
 /* ---------------------------------------------------------------- 品牌 */
@@ -175,7 +185,31 @@ body {
 /* ---------------------------------------------------------------- Hero */
 
 .hero {
+  position: relative;
   padding: clamp(2rem, 7vw, 5rem) 0 clamp(2.5rem, 6vw, 4rem);
+}
+
+/*
+ * Hero 背後的紅色暈光 —— 給版面一個重心，而不是一片死黑。
+ * 它是 hero 內的真實元素（而非偽元素），Motion 才能讓它以不同於前景的速度移動。
+ */
+.hero__glow {
+  position: absolute;
+  inset: -40vh -20vw auto;
+  height: 110vh;
+  background: radial-gradient(
+    55% 55% at 50% 35%,
+    rgb(var(--f1-red-rgb) / 0.2) 0%,
+    rgb(var(--f1-red-rgb) / 0.05) 45%,
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero__content {
+  position: relative;
+  z-index: 1;
 }
 
 .hero__eyebrow {
@@ -1905,5 +1939,70 @@ body {
   font-size: 1.375rem;
   font-variant-numeric: tabular-nums;
   color: var(--team-text);
+}
+
+/* ------------------------------------------------------------ 橫向預覽區 */
+
+.strip {
+  margin-top: clamp(3rem, 8vw, 5rem);
+}
+
+.strip__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.strip__title {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.strip__title span {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+/*
+ * 橫向捲動軌道。負邊距讓卡片可以滑出 gutter 之外、貼到視窗邊緣，
+ * 內距再補回來 —— 這是「內容比容器寬」的視覺暗示。
+ */
+.strip__track {
+  margin: 0 calc(var(--gutter) * -1);
+  padding: 0.25rem var(--gutter) 1rem;
+  list-style: none;
+  display: flex;
+  gap: 0.875rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.strip__track > li {
+  flex: 0 0 auto;
+  width: min(19rem, 78vw);
+  scroll-snap-align: start;
+}
+
+/* 卡片在軌道內要撐滿高度，三種卡片高度才會一致 */
+.strip__track > li > a,
+.strip__track > li.driver-card {
+  height: 100%;
+}
+
+.strip__track .driver-card {
+  width: min(19rem, 78vw);
 }
 

@@ -1,13 +1,13 @@
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router';
 import { motion, type MotionStyle } from 'motion/react';
-import type { DriverSummary, TeamView } from '../domain/types.ts';
+import type { TeamView } from '../domain/types.ts';
 import { useEntrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { TeamLogo } from '../app/TeamLogo.tsx';
-import { DriverPhoto } from '../app/DriverPhoto.tsx';
+import { DriverCard } from '../app/cards/DriverCard.tsx';
 import { readableOn } from '../app/colour.ts';
-import { localisedDriver, localisedTeam } from '../data/localisation.ts';
+import { localisedTeam } from '../data/localisation.ts';
 
 const PAGE_BACKGROUND = '#07070a';
 
@@ -90,42 +90,5 @@ export const TeamPage = ({ season, teams }: TeamPageProps): JSX.Element => {
         ))}
       </ul>
     </motion.article>
-  );
-};
-
-interface DriverCardProps {
-  entry: DriverSummary;
-  colour: string;
-  variants: ReturnType<typeof useEntrance>['item'];
-}
-
-const DriverCard = ({ entry, colour, variants }: DriverCardProps): JSX.Element => {
-  const { driver } = entry;
-  const fullName = `${driver.givenName} ${driver.familyName}`;
-
-  return (
-    <motion.li className="driver-card" variants={variants}>
-      <Link to={`/drivers/${driver.id}`} className="driver-card__photo" aria-label={fullName}>
-        <DriverPhoto driver={driver} colour={colour} />
-      </Link>
-      <span className="driver-card__number">{driver.permanentNumber ?? '—'}</span>
-      <span className="driver-card__name">
-        <BilingualName canonical={fullName} localised={localisedDriver(driver.id)} variant="panel" />
-      </span>
-      <span className="driver-card__stats">
-        <span className="stat">
-          <span className="stat__value">{entry.position}</span>
-          <span className="stat__label">名次</span>
-        </span>
-        <span className="stat">
-          <span className="stat__value">{entry.points}</span>
-          <span className="stat__label">積分</span>
-        </span>
-        <span className="stat">
-          <span className="stat__value">{entry.wins}</span>
-          <span className="stat__label">勝場</span>
-        </span>
-      </span>
-    </motion.li>
   );
 };

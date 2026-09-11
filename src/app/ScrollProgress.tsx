@@ -24,6 +24,7 @@ export const ScrollProgress = (): JSX.Element => {
   useEffect(() => {
     // 換頁後區塊會重新掛載，重新觀察。
     setAccent(DEFAULT_ACCENT);
+    document.documentElement.style.setProperty('--section-accent', DEFAULT_ACCENT);
     const sections = document.querySelectorAll<HTMLElement>('[data-accent]');
     if (sections.length === 0) return;
 
@@ -37,7 +38,10 @@ export const ScrollProgress = (): JSX.Element => {
           best = element as HTMLElement;
         }
       }
-      setAccent(best?.dataset['accent'] || DEFAULT_ACCENT);
+      const next = best?.dataset['accent'] || DEFAULT_ACCENT;
+      setAccent(next);
+      // 頁面底色的淡色層也跟著走（見 styles.css 的 .page::after）。
+      document.documentElement.style.setProperty('--section-accent', next);
     };
 
     const observer = new IntersectionObserver(
