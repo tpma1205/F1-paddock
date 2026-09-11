@@ -95,6 +95,8 @@ export interface DriverStanding {
   position: number;
   points: number;
   wins: number;
+  /** 本季前三名完賽次數。抓取時缺少賽果資料則為 null（未知，而非零）。 */
+  podiums: number | null;
   driver: DriverRef;
   teams: TeamRef[];
 }
@@ -156,6 +158,17 @@ export interface DriverSummary {
   wins: number;
 }
 
+/** 車手的畫面模型：積分榜資料 + 當前車隊。 */
+export interface DriverView {
+  driver: DriverRef;
+  /** 當前車隊（賽季中轉隊者取最後一支）；資料異常時為 null。 */
+  team: TeamRef | null;
+  position: number;
+  points: number;
+  wins: number;
+  podiums: number | null;
+}
+
 /** 車隊的畫面模型：積分榜資料 + 該隊車手，依名次排序。 */
 export interface TeamView {
   id: string;
@@ -174,6 +187,8 @@ export interface ViewModel {
   fetchedAt: string;
   /** 依名次排序。 */
   teams: TeamView[];
+  /** 依名次排序。 */
+  drivers: DriverView[];
   /**
    * 目前聚焦的 Race Weekend —— 含有 Next Session 的那一個。
    * 球季已結束（Off-season）時為 null。

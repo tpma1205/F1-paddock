@@ -188,6 +188,22 @@ describe('buildViewModel', () => {
     });
   });
 
+  describe('車手', () => {
+    const { drivers } = at('2026-09-10T12:00:00Z');
+
+    it('依名次排序，帶當前車隊、積分、勝場與頒獎台', () => {
+      expect(drivers.map((d) => d.position)).toEqual(Array.from({ length: 23 }, (_, i) => i + 1));
+      expect(drivers[0]).toMatchObject({ position: 1, points: 267, wins: 7, podiums: 11 });
+      expect(drivers[0]?.driver.id).toBe('antonelli');
+      expect(drivers[0]?.team?.id).toBe('mercedes');
+      expect(drivers[0]?.team?.colour).toBe('#00d7b6');
+    });
+
+    it('每位車手都有當前車隊', () => {
+      expect(drivers.filter((d) => d.team === null)).toEqual([]);
+    });
+  });
+
   it('保留球季與抓取時間供畫面標示資料新鮮度', () => {
     const vm = at('2026-09-10T12:00:00Z');
 

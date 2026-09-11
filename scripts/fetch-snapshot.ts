@@ -14,6 +14,7 @@ import {
   normaliseSeason,
   type RawDriverStandingsResponse,
   type RawRacesResponse,
+  type RawResultsResponse,
   type RawTeamStandingsResponse,
 } from '../src/data/jolpica.ts';
 import type { RawOpenF1Driver } from '../src/data/openf1.ts';
@@ -75,11 +76,20 @@ const main = async (): Promise<void> => {
     );
     const openF1Drivers = await getOpenF1Drivers();
 
+    // 前三名各一份 —— 3 次請求即得全季頒獎台，不需逐站抓取。
+    const podiumResults: RawResultsResponse[] = [];
+    for (const position of [1, 2, 3]) {
+      podiumResults.push(
+        await getJson<RawResultsResponse>(`${BASE}/results/${position}/?format=json&limit=30`),
+      );
+    }
+
     const snapshot = normaliseSeason({
       races,
       driverStandings,
       teamStandings,
       openF1Drivers,
+      podiumResults,
       fetchedAt: new Date().toISOString(),
     });
 

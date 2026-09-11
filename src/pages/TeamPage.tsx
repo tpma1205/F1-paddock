@@ -5,6 +5,7 @@ import type { DriverSummary, TeamView } from '../domain/types.ts';
 import { useEntrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { TeamLogo } from '../app/TeamLogo.tsx';
+import { DriverPhoto } from '../app/DriverPhoto.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedDriver, localisedTeam } from '../data/localisation.ts';
 
@@ -85,7 +86,7 @@ export const TeamPage = ({ season, teams }: TeamPageProps): JSX.Element => {
 
       <ul className="driver-grid">
         {team.drivers.map((entry) => (
-          <DriverCard key={entry.driver.id} entry={entry} variants={item} />
+          <DriverCard key={entry.driver.id} entry={entry} colour={accent} variants={item} />
         ))}
       </ul>
     </motion.article>
@@ -94,15 +95,19 @@ export const TeamPage = ({ season, teams }: TeamPageProps): JSX.Element => {
 
 interface DriverCardProps {
   entry: DriverSummary;
+  colour: string;
   variants: ReturnType<typeof useEntrance>['item'];
 }
 
-const DriverCard = ({ entry, variants }: DriverCardProps): JSX.Element => {
+const DriverCard = ({ entry, colour, variants }: DriverCardProps): JSX.Element => {
   const { driver } = entry;
   const fullName = `${driver.givenName} ${driver.familyName}`;
 
   return (
     <motion.li className="driver-card" variants={variants}>
+      <Link to={`/drivers/${driver.id}`} className="driver-card__photo" aria-label={fullName}>
+        <DriverPhoto driver={driver} colour={colour} />
+      </Link>
       <span className="driver-card__number">{driver.permanentNumber ?? '—'}</span>
       <span className="driver-card__name">
         <BilingualName canonical={fullName} localised={localisedDriver(driver.id)} variant="panel" />

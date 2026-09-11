@@ -173,6 +173,57 @@ describe('OpenF1 合併 —— 以車手縮寫為橋樑', () => {
   });
 });
 
+describe('頒獎台統計 —— 由前三名賽果回應推導', () => {
+  const snapshot = buildFixtureSnapshot();
+  const podiumsOf = (id: string) =>
+    snapshot.driverStandings.find((s) => s.driver.id === id)?.podiums;
+
+  it('統計每位車手的前三名完賽次數', () => {
+    // 13 站 × 3 個名次 = 39 個頒獎台名次
+    const total = snapshot.driverStandings.reduce((sum, s) => sum + (s.podiums ?? 0), 0);
+    expect(total).toBe(39);
+    expect(podiumsOf('antonelli')).toBe(11);
+    expect(podiumsOf('russell')).toBe(7);
+  });
+
+  it('沒上過頒獎台的車手是 0，不是 null —— 資料在，只是次數為零', () => {
+    expect(podiumsOf('bottas')).toBe(0);
+  });
+
+  it('未提供賽果資料時為 null —— 讓畫面能區分「零次」與「不知道」', () => {
+    const noResults = normaliseSeason({
+      races: { MRData: { RaceTable: { season: '2026', Races: [] } } },
+      driverStandings: {
+        MRData: {
+          StandingsTable: {
+            season: '2026',
+            round: '1',
+            StandingsLists: [
+              {
+                DriverStandings: [
+                  {
+                    position: '1',
+                    points: '25',
+                    wins: '1',
+                    Driver: { driverId: 'x', givenName: 'X', familyName: 'Y', nationality: 'Z' },
+                    Constructors: [{ constructorId: 't', name: 'T', nationality: 'Z' }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      teamStandings: {
+        MRData: { StandingsTable: { season: '2026', round: '1', StandingsLists: [] } },
+      },
+      fetchedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(noResults.driverStandings[0]?.podiums).toBeNull();
+  });
+});
+
 /**
  * 資料異常時的降級行為。
  *

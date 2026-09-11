@@ -6,11 +6,11 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `/drivers` 列出本季全部 Driver，含照片、車號、中英名稱、所屬 Team、積分
-- [ ] `/drivers/:id` 顯示該車手本季積分、勝場、頒獎台、名次
-- [ ] 照片載入失敗時降級為車隊代表色 + 姓名縮寫的替代圖，沿用票 04 建立的降級樣式
-- [ ] 每位 Driver 以所屬 Team 的代表色標示
-- [ ] Provisional Name 的車手在畫面上可辨識
-- [ ] 窄螢幕版型可用
+- [x] `/drivers` 列出本季全部 Driver，含照片、車號、中英名稱、所屬 Team、積分
+- [x] `/drivers/:id` 顯示該車手本季積分、勝場、頒獎台、名次
+- [x] 照片載入失敗時降級為車隊代表色 + 姓名縮寫的替代圖，沿用票 04 建立的降級樣式
+- [x] 每位 Driver 以所屬 Team 的代表色標示
+- [x] Provisional Name 的車手在畫面上可辨識
+- [x] 窄螢幕版型可用

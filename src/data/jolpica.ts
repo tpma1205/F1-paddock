@@ -81,6 +81,16 @@ export interface RawRacesResponse {
   MRData: { RaceTable: { season: string; Races: RawRace[] } };
 }
 
+interface RawResult {
+  position: string;
+  Driver: { driverId: string };
+}
+
+/** `/results/{position}/` 的回應：每站只含該名次的一筆 Result。 */
+export interface RawResultsResponse {
+  MRData: { RaceTable: { season: string; Races: Array<RawRace & { Results: RawResult[] }> } };
+}
+
 export interface RawDriverStandingsResponse {
   MRData: {
     StandingsTable: {
@@ -206,12 +216,41 @@ const toWeekend = (race: RawRace): RaceWeekend => ({
   sessions: toSessions(race),
 });
 
+/**
+ * 由「前三名」的賽果回應統計每位車手的頒獎台次數。
+ *
+ * 用 `/results/1/`、`/2/`、`/3/` 三個請求取代逐站抓取 —— 對一個志工營運
+ * 的免費 API，3 次遠好過 23 次。回傳 null（而非空 Map）代表資料未提供，
+ * 讓畫面能區分「零次」與「不知道」。
+ */
+const tallyPodiums = (
+  responses: ReadonlyArray<RawResultsResponse> | undefined,
+): ReadonlyMap<string, number> | null => {
+  if (!responses || responses.length === 0) return null;
+
+  const tally = new Map<string, number>();
+  for (const response of responses) {
+    for (const race of response.MRData.RaceTable.Races) {
+      for (const result of race.Results) {
+        const id = result.Driver.driverId;
+        tally.set(id, (tally.get(id) ?? 0) + 1);
+      }
+    }
+  }
+  return tally;
+};
+
 const toDriverStanding =
-  (colours: ColourByTeam, openF1: ReadonlyMap<string, OpenF1DriverInfo>) =>
+  (
+    colours: ColourByTeam,
+    openF1: ReadonlyMap<string, OpenF1DriverInfo>,
+    podiums: ReadonlyMap<string, number> | null,
+  ) =>
   (raw: RawDriverStanding): DriverStanding => ({
     position: Number(raw.position),
     points: Number(raw.points),
     wins: Number(raw.wins),
+    podiums: podiums === null ? null : (podiums.get(raw.Driver.driverId) ?? 0),
     driver: {
       id: raw.Driver.driverId,
       code: raw.Driver.code ?? null,
@@ -255,6 +294,8 @@ export interface NormaliseInput {
   teamStandings: RawTeamStandingsResponse;
   /** 可省略 —— OpenF1 失效時仍能產出沒有顏色與照片的快照。 */
   openF1Drivers?: ReadonlyArray<RawOpenF1Driver>;
+  /** 前三名的賽果回應（各一份）；可省略，屆時頒獎台次數為 null。 */
+  podiumResults?: ReadonlyArray<RawResultsResponse>;
   fetchedAt: string;
 }
 
@@ -269,6 +310,7 @@ export const normaliseSeason = ({
   driverStandings,
   teamStandings,
   openF1Drivers = [],
+  podiumResults,
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
@@ -277,6 +319,7 @@ export const normaliseSeason = ({
 
   const openF1 = indexOpenF1Drivers(openF1Drivers);
   const colours = deriveTeamColours(rawDrivers, openF1);
+  const podiums = tallyPodiums(podiumResults);
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
   return {
@@ -285,7 +328,7 @@ export const normaliseSeason = ({
     fetchedAt,
     weekends: raceTable.Races.map(toWeekend).sort((a, b) => a.round - b.round),
     driverStandings: rawDrivers
-      .map(toDriverStanding(colours, openF1))
+      .map(toDriverStanding(colours, openF1, podiums))
       .sort((a, b) => a.position - b.position),
     teamStandings: rawTeams.map(toTeamStanding(colours)).sort((a, b) => a.position - b.position),
   };

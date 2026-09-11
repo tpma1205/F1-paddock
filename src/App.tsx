@@ -7,6 +7,8 @@ import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/for
 import { HomePage } from './pages/HomePage.tsx';
 import { TeamsPage } from './pages/TeamsPage.tsx';
 import { TeamPage } from './pages/TeamPage.tsx';
+import { DriversPage } from './pages/DriversPage.tsx';
+import { DriverPage } from './pages/DriverPage.tsx';
 
 /**
  * 路由的 basename 取自 Vite 的 base（`/f1-paddock/`），不另外寫一份 ——
@@ -33,6 +35,7 @@ export const App = (): JSX.Element => {
               首頁
             </NavLink>
             <NavLink to="/teams">車隊</NavLink>
+            <NavLink to="/drivers">車手</NavLink>
           </nav>
         </header>
 
@@ -51,6 +54,14 @@ export const App = (): JSX.Element => {
             <Route
               path="/teams/:teamId"
               element={<TeamPage season={viewModel.season} teams={viewModel.teams} />}
+            />
+            <Route
+              path="/drivers"
+              element={<DriversPage season={viewModel.season} drivers={viewModel.drivers} />}
+            />
+            <Route
+              path="/drivers/:driverId"
+              element={<DriverPage season={viewModel.season} drivers={viewModel.drivers} />}
             />
           </Routes>
         </main>

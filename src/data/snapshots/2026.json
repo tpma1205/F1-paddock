@@ -1,7 +1,7 @@
 {
   "season": "2026",
   "completedRound": 13,
-  "fetchedAt": "2026-09-11T07:12:33.604Z",
+  "fetchedAt": "2026-09-11T07:30:22.109Z",
   "weekends": [
     {
       "round": 1,
@@ -791,6 +791,7 @@
       "position": 1,
       "points": 267,
       "wins": 7,
+      "podiums": 11,
       "driver": {
         "id": "antonelli",
         "code": "ANT",
@@ -813,6 +814,7 @@
       "position": 2,
       "points": 201,
       "wins": 2,
+      "podiums": 7,
       "driver": {
         "id": "russell",
         "code": "RUS",
@@ -835,6 +837,7 @@
       "position": 3,
       "points": 191,
       "wins": 1,
+      "podiums": 5,
       "driver": {
         "id": "hamilton",
         "code": "HAM",
@@ -857,6 +860,7 @@
       "position": 4,
       "points": 171,
       "wins": 2,
+      "podiums": 4,
       "driver": {
         "id": "norris",
         "code": "NOR",
@@ -879,6 +883,7 @@
       "position": 5,
       "points": 155,
       "wins": 1,
+      "podiums": 4,
       "driver": {
         "id": "leclerc",
         "code": "LEC",
@@ -901,6 +906,7 @@
       "position": 6,
       "points": 127,
       "wins": 0,
+      "podiums": 5,
       "driver": {
         "id": "max_verstappen",
         "code": "VER",
@@ -923,6 +929,7 @@
       "position": 7,
       "points": 116,
       "wins": 0,
+      "podiums": 2,
       "driver": {
         "id": "piastri",
         "code": "PIA",
@@ -945,6 +952,7 @@
       "position": 8,
       "points": 71,
       "wins": 0,
+      "podiums": 1,
       "driver": {
         "id": "hadjar",
         "code": "HAD",
@@ -967,6 +975,7 @@
       "position": 9,
       "points": 51,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "lawson",
         "code": "LAW",
@@ -995,6 +1004,7 @@
       "position": 10,
       "points": 41,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "gasly",
         "code": "GAS",
@@ -1017,6 +1027,7 @@
       "position": 11,
       "points": 29,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "arvid_lindblad",
         "code": "LIN",
@@ -1039,6 +1050,7 @@
       "position": 12,
       "points": 21,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "colapinto",
         "code": "COL",
@@ -1061,6 +1073,7 @@
       "position": 13,
       "points": 18,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "bearman",
         "code": "BEA",
@@ -1083,6 +1096,7 @@
       "position": 14,
       "points": 10,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "bortoleto",
         "code": "BOR",
@@ -1105,6 +1119,7 @@
       "position": 15,
       "points": 6,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "hulkenberg",
         "code": "HUL",
@@ -1127,6 +1142,7 @@
       "position": 16,
       "points": 6,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "sainz",
         "code": "SAI",
@@ -1149,6 +1165,7 @@
       "position": 17,
       "points": 5,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "albon",
         "code": "ALB",
@@ -1171,6 +1188,7 @@
       "position": 18,
       "points": 3,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "ocon",
         "code": "OCO",
@@ -1193,6 +1211,7 @@
       "position": 19,
       "points": 3,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "alonso",
         "code": "ALO",
@@ -1215,6 +1234,7 @@
       "position": 20,
       "points": 1,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "tsunoda",
         "code": "TSU",
@@ -1237,6 +1257,7 @@
       "position": 21,
       "points": 0,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "stroll",
         "code": "STR",
@@ -1259,6 +1280,7 @@
       "position": 22,
       "points": 0,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "bottas",
         "code": "BOT",
@@ -1281,6 +1303,7 @@
       "position": 23,
       "points": 0,
       "wins": 0,
+      "podiums": 0,
       "driver": {
         "id": "perez",
         "code": "PER",
