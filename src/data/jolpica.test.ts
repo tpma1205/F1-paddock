@@ -191,8 +191,8 @@ describe('逐站賽果 —— 分頁合併', () => {
   it('依分類序號排序，冠軍在最前', () => {
     const r13 = resultsOf(13)!;
     expect(r13[0]).toMatchObject({ position: 1, positionText: '1', classified: true, points: 25 });
-    expect(r13[0]?.driver.id).toBe('antonelli');
-    expect(r13[0]?.team.id).toBe('mercedes');
+    expect(r13[0]?.driverId).toBe('antonelli');
+    expect(r13[0]?.teamId).toBe('mercedes');
     expect(r13[0]?.time).toBe('1:51:15.281');
     expect(r13.map((r) => r.position)).toEqual([...r13].map((r) => r.position).sort((a, b) => a - b));
   });
@@ -205,10 +205,11 @@ describe('逐站賽果 —— 分頁合併', () => {
     expect(dnf?.position).toBeGreaterThan(0);
   });
 
-  it('賽果內的車手與車隊參照帶有照片與代表色（同一套 OpenF1 合併）', () => {
+  it('賽果只存 ID、不內嵌車手與車隊物件 —— 快照體積由此控制', () => {
     const winner = resultsOf(13)![0]!;
-    expect(winner.driver.headshotUrl).toMatch(/^https:/);
-    expect(winner.team.colour).toBe('#00d7b6');
+    expect(winner).not.toHaveProperty('driver');
+    expect(winner).not.toHaveProperty('team');
+    expect(typeof winner.driverId).toBe('string');
   });
 
   it('最速圈只有一位', () => {

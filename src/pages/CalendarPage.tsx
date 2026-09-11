@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
-import type { RaceResult, WeekendView } from '../domain/types.ts';
+import type { ResultView, WeekendView } from '../domain/types.ts';
 import { useEntrance, type Entrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { Flag } from '../app/Flag.tsx';
@@ -103,7 +103,7 @@ const CalendarRow = ({ weekend, isNext, nowMs, timeZone, variants }: CalendarRow
 };
 
 /** 前三名 —— 以車隊代表色的小圓點 + 姓氏呈現，不佔太多空間。 */
-const Podium = ({ podium }: { podium: RaceResult[] }): JSX.Element => (
+const Podium = ({ podium }: { podium: ResultView[] }): JSX.Element => (
   <ol className="podium">
     {podium.map((result) => (
       <li key={result.driver.id} className="podium__entry">

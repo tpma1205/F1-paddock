@@ -23,3 +23,9 @@
 ## 補充（票 04 實作時發現）：logo 容器為白色銘牌
 
 實作時發現 F1 官方 CDN 的車隊 logo 是**白底不透明**的 96×96 PNG，為白色頁面設計。放進深色容器時，深色 logo 直接看不見、淺色 logo 則變成突兀的白方塊。決定將統一容器改為**白色銘牌**——這是深色介面呈現車隊 logo 的慣例做法，車隊識別交由卡片的代表色色條與銘牌邊緣的光暈承擔。Audi／Cadillac 的自製字標同樣放在白色銘牌上，以代表色呈現並自動調暗至可讀；`readableOn` 因此需同時支援「深底提亮」與「淺底調暗」兩個方向。
+
+## 補充（票 12 實作時發現）：OpenF1 在直播期間封鎖所有未認證請求
+
+實測於馬德里自由練習進行中：OpenF1 對**所有**未認證請求回 401，連歷史資料與 `sessions?year=` 也擋（回應原文：「Live F1 session in progress. Global API access (including past sessions) is restricted to authenticated users until the session ends.」）。改查已結束的 session 無法繞過。
+
+決定：抓取腳本在 OpenF1 失敗時**沿用上一份快照的代表色與照片**（合成為與 OpenF1 回應同形的清單餵給 normalise），而非產出無顏色的快照。顏色與照片一週內幾乎不變，沿用遠好過清空。週排程落在週二、不會撞到直播，但 `workflow_dispatch` 可能——這層保護讓任何時間手動觸發都安全。

@@ -6,11 +6,11 @@
 
 **Blocked by:** 04, 05, 06, 07
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 路由清單由 View Model 產出，建置腳本不得自行硬編一份
-- [ ] 建置產物包含每個 Team／Driver／Circuit／Round 路由的實體 HTML
-- [ ] 有測試驗證：Snapshot 中的每一個實體都對應到一個會被產生的路由
-- [ ] `404.html` 就位作為安全網，處理打錯網址的情況
-- [ ] 以靜態伺服器提供建置產物時，直接開啟內頁與按重整皆正常
-- [ ] 所有資源在 `/f1-paddock/` 這個 base 路徑下都能正確載入
+- [x] 路由清單由 View Model 產出，建置腳本不得自行硬編一份
+- [x] 建置產物包含每個 Team／Driver／Circuit／Round 路由的實體 HTML
+- [x] 有測試驗證：Snapshot 中的每一個實體都對應到一個會被產生的路由
+- [x] `404.html` 就位作為安全網，處理打錯網址的情況
+- [x] 以靜態伺服器提供建置產物時，直接開啟內頁與按重整皆正常
+- [x] 所有資源在 `/f1-paddock/` 這個 base 路徑下都能正確載入

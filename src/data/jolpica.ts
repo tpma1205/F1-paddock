@@ -230,21 +230,19 @@ const toDriverRef = (raw: RawDriver, openF1: ReadonlyMap<string, OpenF1DriverInf
 
 const CLASSIFIED = /^\d+$/;
 
-const toRaceResult =
-  (colours: ColourByTeam, openF1: ReadonlyMap<string, OpenF1DriverInfo>) =>
-  (raw: RawResult): RaceResult => ({
-    position: Number(raw.position),
-    positionText: raw.positionText,
-    classified: CLASSIFIED.test(raw.positionText),
-    points: Number(raw.points),
-    status: raw.status,
-    laps: Number(raw.laps),
-    grid: Number(raw.grid),
-    time: raw.Time?.time ?? null,
-    fastestLap: raw.FastestLap?.rank === '1',
-    driver: toDriverRef(raw.Driver, openF1),
-    team: toTeamRef(raw.Constructor, colours),
-  });
+const toRaceResult = (raw: RawResult): RaceResult => ({
+  position: Number(raw.position),
+  positionText: raw.positionText,
+  classified: CLASSIFIED.test(raw.positionText),
+  points: Number(raw.points),
+  status: raw.status,
+  laps: Number(raw.laps),
+  grid: Number(raw.grid),
+  time: raw.Time?.time ?? null,
+  fastestLap: raw.FastestLap?.rank === '1',
+  driverId: raw.Driver.driverId,
+  teamId: raw.Constructor.constructorId,
+});
 
 /**
  * 把分頁的賽果回應依 round 合併。Jolpica 每頁最多 100 筆，一站 22 筆，
@@ -252,7 +250,6 @@ const toRaceResult =
  */
 const groupResultsByRound = (
   pages: ReadonlyArray<RawResultsResponse>,
-  toResult: (raw: RawResult) => RaceResult,
 ): ReadonlyMap<number, RaceResult[]> => {
   const byRound = new Map<number, RaceResult[]>();
 
@@ -260,7 +257,7 @@ const groupResultsByRound = (
     for (const race of page.MRData.RaceTable.Races) {
       const round = Number(race.round);
       const existing = byRound.get(round) ?? [];
-      byRound.set(round, [...existing, ...race.Results.map(toResult)]);
+      byRound.set(round, [...existing, ...race.Results.map(toRaceResult)]);
     }
   }
 
@@ -301,7 +298,7 @@ const tallyPodiums = (
   for (const results of resultsByRound.values()) {
     for (const result of results) {
       if (!result.classified || result.position > 3) continue;
-      tally.set(result.driver.id, (tally.get(result.driver.id) ?? 0) + 1);
+      tally.set(result.driverId, (tally.get(result.driverId) ?? 0) + 1);
     }
   }
   return tally;
@@ -378,10 +375,7 @@ export const normaliseSeason = ({
 
   const openF1 = indexOpenF1Drivers(openF1Drivers);
   const colours = deriveTeamColours(rawDrivers, openF1);
-  const resultsByRound =
-    results && results.length > 0
-      ? groupResultsByRound(results, toRaceResult(colours, openF1))
-      : null;
+  const resultsByRound = results && results.length > 0 ? groupResultsByRound(results) : null;
   const podiums = tallyPodiums(resultsByRound);
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 

@@ -2006,3 +2006,8 @@ body {
   width: min(19rem, 78vw);
 }
 
+/* 延遲載入頁面時的佔位 —— 撐住高度避免 footer 跳上來，不放轉圈圈 */
+.page-loading {
+  min-height: 60vh;
+}
+

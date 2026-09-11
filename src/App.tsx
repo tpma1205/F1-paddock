@@ -1,4 +1,4 @@
-import { useMemo, type JSX } from 'react';
+import { Suspense, lazy, useMemo, type JSX } from 'react';
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router';
 import { bundledSnapshot } from './data/snapshot.ts';
 import { buildViewModel } from './domain/viewModel.ts';
@@ -6,14 +6,19 @@ import { useNow } from './app/useNow.ts';
 import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/formatting.ts';
 import { ScrollProgress } from './app/ScrollProgress.tsx';
 import { HomePage } from './pages/HomePage.tsx';
-import { TeamsPage } from './pages/TeamsPage.tsx';
-import { TeamPage } from './pages/TeamPage.tsx';
-import { DriversPage } from './pages/DriversPage.tsx';
-import { DriverPage } from './pages/DriverPage.tsx';
-import { CircuitsPage } from './pages/CircuitsPage.tsx';
-import { CircuitPage } from './pages/CircuitPage.tsx';
-import { CalendarPage } from './pages/CalendarPage.tsx';
-import { RacePage } from './pages/RacePage.tsx';
+
+/**
+ * 內頁以路由為單位延遲載入 —— 首頁是入口、不延遲；其餘頁面各自成一個 chunk，
+ * 使用者沒點到的頁面就不下載。
+ */
+const TeamsPage = lazy(() => import('./pages/TeamsPage.tsx').then((m) => ({ default: m.TeamsPage })));
+const TeamPage = lazy(() => import('./pages/TeamPage.tsx').then((m) => ({ default: m.TeamPage })));
+const DriversPage = lazy(() => import('./pages/DriversPage.tsx').then((m) => ({ default: m.DriversPage })));
+const DriverPage = lazy(() => import('./pages/DriverPage.tsx').then((m) => ({ default: m.DriverPage })));
+const CircuitsPage = lazy(() => import('./pages/CircuitsPage.tsx').then((m) => ({ default: m.CircuitsPage })));
+const CircuitPage = lazy(() => import('./pages/CircuitPage.tsx').then((m) => ({ default: m.CircuitPage })));
+const CalendarPage = lazy(() => import('./pages/CalendarPage.tsx').then((m) => ({ default: m.CalendarPage })));
+const RacePage = lazy(() => import('./pages/RacePage.tsx').then((m) => ({ default: m.RacePage })));
 
 /**
  * 路由的 basename 取自 Vite 的 base（`/f1-paddock/`），不另外寫一份 ——
@@ -50,7 +55,8 @@ export const App = (): JSX.Element => {
         </header>
 
         <main>
-          <Routes>
+          <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
+            <Routes>
             <Route
               path="/"
               element={
@@ -106,7 +112,8 @@ export const App = (): JSX.Element => {
                 />
               }
             />
-          </Routes>
+            </Routes>
+          </Suspense>
         </main>
 
         <footer className="meta">

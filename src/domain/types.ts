@@ -78,8 +78,13 @@ export interface RaceResult {
   /** 冠軍為總時間，其餘為與冠軍的差距；未完賽者為 null。 */
   time: string | null;
   fastestLap: boolean;
-  driver: DriverRef;
-  team: TeamRef;
+  /**
+   * 只存 ID，不內嵌 DriverRef／TeamRef —— 286 筆賽果各帶一份完整車手物件
+   * （含 150 字元的照片網址）會讓快照膨脹近一倍。畫面所需的參照由
+   * View Model 解析（見 ResultView）。
+   */
+  driverId: string;
+  teamId: string;
 }
 
 export interface RaceWeekend {
@@ -159,6 +164,12 @@ export interface SessionView {
   status: SessionStatus;
 }
 
+/** 賽果 + 解析後的車手與車隊參照。 */
+export interface ResultView extends RaceResult {
+  driver: DriverRef;
+  team: TeamRef;
+}
+
 export interface WeekendView {
   round: number;
   name: string;
@@ -166,9 +177,9 @@ export interface WeekendView {
   sessions: SessionView[];
   /** 正賽的狀態 —— 賽程表用它區分已完賽／進行中／未來。 */
   raceStatus: SessionStatus;
-  results: RaceResult[] | null;
+  results: ResultView[] | null;
   /** 前三名（有正式名次者），供賽程表直接顯示。 */
-  podium: RaceResult[];
+  podium: ResultView[];
 }
 
 export interface NextSession {

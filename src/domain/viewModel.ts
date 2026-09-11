@@ -1,17 +1,55 @@
 import {
   SESSION_DURATION_MINUTES,
   type CircuitView,
+  type DriverRef,
   type DriverSummary,
   type DriverView,
   type RaceWeekend,
+  type ResultView,
   type Session,
   type SessionStatus,
   type SessionView,
   type Snapshot,
+  type TeamRef,
   type TeamView,
   type ViewModel,
   type WeekendView,
 } from './types.ts';
+
+/** 快照中的賽果只存 ID，這裡解析回車手與車隊參照。 */
+interface RefIndex {
+  drivers: ReadonlyMap<string, DriverRef>;
+  teams: ReadonlyMap<string, TeamRef>;
+}
+
+const indexRefs = (snapshot: Snapshot): RefIndex => {
+  const drivers = new Map<string, DriverRef>();
+  const teams = new Map<string, TeamRef>();
+
+  for (const standing of snapshot.driverStandings) {
+    drivers.set(standing.driver.id, standing.driver);
+    for (const team of standing.teams) teams.set(team.id, team);
+  }
+  for (const standing of snapshot.teamStandings) teams.set(standing.team.id, standing.team);
+
+  return { drivers, teams };
+};
+
+/**
+ * 找不到參照時退回一個只有 ID 的最小物件，畫面仍能顯示 —— 這只會在
+ * 資料不一致時發生（例如賽果有某位車手、積分榜卻沒有），不該讓整頁失效。
+ */
+const fallbackDriver = (id: string): DriverRef => ({
+  id,
+  code: null,
+  permanentNumber: null,
+  givenName: '',
+  familyName: id,
+  nationality: '',
+  headshotUrl: null,
+});
+
+const fallbackTeam = (id: string): TeamRef => ({ id, name: id, nationality: '', colour: null });
 
 const MINUTE_MS = 60_000;
 
@@ -35,10 +73,17 @@ const toSessionView = (session: Session, nowMs: number): SessionView => ({
   status: statusOf(session, nowMs),
 });
 
-const toWeekendView = (weekend: RaceWeekend, nowMs: number): WeekendView => {
+const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): WeekendView => {
   const sessions = weekend.sessions.map((session) => toSessionView(session, nowMs));
   // 每個 Race Weekend 必有正賽（見 jolpica.ts 的 toSessions）；找不到時視為未開始。
   const race = sessions.find((session) => session.kind === 'race');
+
+  const results: ResultView[] | null =
+    weekend.results?.map((result) => ({
+      ...result,
+      driver: refs.drivers.get(result.driverId) ?? fallbackDriver(result.driverId),
+      team: refs.teams.get(result.teamId) ?? fallbackTeam(result.teamId),
+    })) ?? null;
 
   return {
     round: weekend.round,
@@ -46,8 +91,8 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number): WeekendView => {
     circuit: weekend.circuit,
     sessions,
     raceStatus: race?.status ?? 'upcoming',
-    results: weekend.results,
-    podium: (weekend.results ?? []).filter((r) => r.classified && r.position <= 3).slice(0, 3),
+    results,
+    podium: (results ?? []).filter((r) => r.classified && r.position <= 3).slice(0, 3),
   };
 };
 
@@ -123,7 +168,8 @@ const buildCircuits = (snapshot: Snapshot): CircuitView[] => {
  */
 export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   const nowMs = now.getTime();
-  const weekends = snapshot.weekends.map((weekend) => toWeekendView(weekend, nowMs));
+  const refs = indexRefs(snapshot);
+  const weekends = snapshot.weekends.map((weekend) => toWeekendView(weekend, nowMs, refs));
 
   const base = {
     season: snapshot.season,

@@ -181,6 +181,22 @@ describe('buildViewModel', () => {
       expect(weekends[13]?.results).toBeNull();
     });
 
+    it('賽果的車手與車隊參照由 ID 解析而來，帶照片與代表色', () => {
+      const winner = weekends[12]?.results?.[0];
+      expect(winner?.driver.headshotUrl).toMatch(/^https:/);
+      expect(winner?.team.colour).toBe('#00d7b6');
+      expect(winner?.driver.familyName).toBe('Antonelli');
+    });
+
+    it('賽果指向積分榜沒有的車手時，退回最小物件而非整頁失效', () => {
+      const tampered = structuredClone(snapshot);
+      tampered.weekends[12]!.results![0]!.driverId = 'ghost';
+      const vm = buildViewModel(tampered, new Date('2026-09-10T12:00:00Z'));
+      const winner = vm.weekends[12]?.results?.[0];
+      expect(winner?.driver.id).toBe('ghost');
+      expect(winner?.driver.headshotUrl).toBeNull();
+    });
+
     it('正賽進行中時狀態為 live', () => {
       // 馬德里正賽 09-13 13:00Z 起 120 分鐘
       expect(at('2026-09-13T14:00:00Z').weekends[13]?.raceStatus).toBe('live');

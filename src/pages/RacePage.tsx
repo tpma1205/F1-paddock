@@ -1,7 +1,7 @@
 import type { JSX } from 'react';
 import { Link, useParams } from 'react-router';
 import { motion } from 'motion/react';
-import type { RaceResult, WeekendView } from '../domain/types.ts';
+import type { ResultView, WeekendView } from '../domain/types.ts';
 import { useEntrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { DriverPhoto } from '../app/DriverPhoto.tsx';
@@ -125,7 +125,7 @@ export const RacePage = ({
  * 一列賽果。窄螢幕只保留名次／車手／積分，其餘收進可展開的 <details>；
  * 桌機版所有欄位攤平顯示、展開機制以 CSS 停用。
  */
-const ResultRow = ({ result }: { result: RaceResult }): JSX.Element => {
+const ResultRow = ({ result }: { result: ResultView }): JSX.Element => {
   const { driver, team } = result;
   const accent = team.colour ?? '#8b8b96';
   const style = {
