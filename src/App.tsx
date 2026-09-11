@@ -4,6 +4,7 @@ import { bundledSnapshot } from './data/snapshot.ts';
 import { buildViewModel } from './domain/viewModel.ts';
 import { useNow } from './app/useNow.ts';
 import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/formatting.ts';
+import { ScrollProgress } from './app/ScrollProgress.tsx';
 import { HomePage } from './pages/HomePage.tsx';
 import { TeamsPage } from './pages/TeamsPage.tsx';
 import { TeamPage } from './pages/TeamPage.tsx';
@@ -30,6 +31,7 @@ export const App = (): JSX.Element => {
 
   return (
     <BrowserRouter basename={BASENAME}>
+      <ScrollProgress />
       <div className="page">
         <header className="topbar">
           <NavLink to="/" className="brand" end>

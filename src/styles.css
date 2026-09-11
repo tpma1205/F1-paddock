@@ -1749,3 +1749,161 @@ body {
   }
 }
 
+/* ---------------------------------------------------------- 滾動進度條 */
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  height: 3px;
+  transform-origin: 0 50%;
+  z-index: 100;
+  transition: background-color 0.5s ease;
+}
+
+/* ------------------------------------------------------------ 本季戰況 */
+
+.standings {
+  margin-top: clamp(3rem, 8vw, 5rem);
+}
+
+.standings__head {
+  margin-bottom: 1.5rem;
+}
+
+.standings__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2rem, 6vw, 3.25rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.standings__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+  gap: 1rem;
+}
+
+.standings__column {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.standings__column-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.standings__column-head h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.standings__column-head h3 span {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.standings__more {
+  font-size: 0.8125rem;
+  color: var(--f1-red-bright);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.standings__more:hover {
+  text-decoration: underline;
+}
+
+.standings__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standings__row {
+  --team-colour: var(--text-dim);
+  --team-text: var(--text-dim);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 0.7rem 1.25rem 0.7rem 1.4rem;
+  border-top: 1px solid var(--line-soft);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.15s ease;
+}
+
+.standings__row::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--team-colour);
+}
+
+.standings__list li:first-child .standings__row {
+  border-top: none;
+}
+
+.standings__row:hover {
+  background: var(--raised);
+}
+
+.standings__position {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.125rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.standings__name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.standings__name .bilingual__canonical {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.standings__name .bilingual--panel .bilingual__localised {
+  font-size: 0.75rem;
+}
+
+.standings__sub {
+  font-size: 0.6875rem;
+  color: var(--text-faint);
+}
+
+.standings__points {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.375rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--team-text);
+}
+

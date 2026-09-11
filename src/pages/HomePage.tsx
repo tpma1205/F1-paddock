@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import type { ViewModel } from '../domain/types.ts';
 import { useEntrance } from '../app/motion.ts';
 import { SessionPanel } from '../app/SessionPanel.tsx';
+import { StandingsSection } from '../app/StandingsSection.tsx';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { localisedCircuit, localisedRaceWeekend } from '../data/localisation.ts';
 import { SESSION_LABEL, pad2, toCountdown } from '../app/formatting.ts';
@@ -15,7 +16,8 @@ interface HomePageProps {
 
 export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps): JSX.Element => {
   const { container, item } = useEntrance();
-  const { season, nextSession, focusWeekend, isOffSeason } = viewModel;
+  const { season, nextSession, focusWeekend, isOffSeason, drivers, teams } = viewModel;
+  const completedRound = viewModel.weekends.filter((w) => w.raceStatus === 'finished').length || null;
 
   return (
     <>
@@ -79,6 +81,8 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
           timeZoneLabel={timeZoneLabel}
         />
       )}
+
+      <StandingsSection season={season} completedRound={completedRound} drivers={drivers} teams={teams} />
     </>
   );
 };
