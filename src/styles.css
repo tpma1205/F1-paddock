@@ -84,11 +84,46 @@ body {
 
 /* ---------------------------------------------------------------- 品牌 */
 
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 0;
+}
+
 .brand {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 1.75rem 0;
+  text-decoration: none;
+}
+
+.nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.nav a {
+  padding: 0.4rem 0.8rem;
+  border-radius: 999px;
+  color: var(--text-dim);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav a:hover {
+  color: var(--text);
+  background: var(--raised);
+}
+
+/* 當前頁面 —— 網站骨幹色的紅，不是內容色 */
+.nav a.active {
+  color: var(--text);
+  background: var(--raised);
+  box-shadow: inset 0 -2px 0 var(--f1-red);
 }
 
 .brand__mark {
@@ -506,5 +541,317 @@ body {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+}
+
+/* ---------------------------------------------------------------- 列表頁 */
+
+.listing {
+  padding: clamp(1.5rem, 5vw, 3rem) 0;
+}
+
+.listing__head {
+  margin-bottom: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.listing__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.hero__title--compact {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+}
+
+.section-title {
+  margin: clamp(2rem, 5vw, 3rem) 0 1rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.breadcrumb {
+  margin: 0 0 1.5rem;
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.breadcrumb a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ 車隊卡片 */
+
+.team-grid,
+.driver-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.875rem;
+}
+
+.team-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr));
+}
+
+/*
+ * 代表色只出現在「這支車隊的地盤」：左緣色條、logo 光暈、數字。
+ * --team-colour 是原色（裝飾用），--team-text 是提亮後的版本（文字用）。
+ */
+.team-card {
+  --team-colour: var(--text-dim);
+  --team-text: var(--text-dim);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.team-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--team-colour);
+}
+
+.team-card:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--team-colour) 45%, var(--line));
+}
+
+.team-card__position {
+  position: absolute;
+  top: 0.75rem;
+  right: 1rem;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.75rem;
+  line-height: 1;
+  color: var(--line);
+}
+
+.team-card__name {
+  grid-column: 2;
+  min-width: 0;
+}
+
+.team-card__name .bilingual__canonical {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.125rem;
+  line-height: 1.2;
+}
+
+.team-card__stats {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+/* ---------------------------------------------------------------- Logo */
+
+/*
+ * 所有 logo 收進同一個固定尺寸的**白色銘牌**（見 ADR-0003 與 TeamLogo.tsx）。
+ * 光暈用原色 —— 裝飾不需要通過對比度門檻。
+ */
+.team-logo {
+  --team-colour: var(--text-dim);
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid color-mix(in srgb, var(--team-colour) 35%, #fff);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--team-colour) 18%, transparent),
+    0 0 24px -8px color-mix(in srgb, var(--team-colour) 55%, transparent);
+  overflow: hidden;
+}
+
+.team-logo--card {
+  width: 5rem;
+  height: 3.25rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.team-logo--hero {
+  width: 8.5rem;
+  height: 5.5rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 14px;
+}
+
+.team-logo img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+/* 自製字標 —— Audi、Cadillac，以及任何 logo 載入失敗的車隊 */
+.team-logo__wordmark {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 0.875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.team-logo--hero .team-logo__wordmark {
+  font-size: 1.375rem;
+}
+
+/* ---------------------------------------------------------------- 統計 */
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.stat__value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--team-text, var(--text));
+}
+
+.stat__label {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.stat-row {
+  margin: clamp(1.5rem, 4vw, 2.5rem) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: clamp(1.5rem, 5vw, 3rem);
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.stat--large .stat__value {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 900;
+}
+
+/* ------------------------------------------------------------ 車隊詳情 */
+
+.team-detail {
+  --team-colour: var(--text-dim);
+  --team-text: var(--text-dim);
+
+  padding: clamp(1.5rem, 5vw, 3rem) 0;
+}
+
+.team-detail__head {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 3vw, 2rem);
+}
+
+.team-detail__head .hero__title {
+  margin-top: 0.25rem;
+}
+
+.driver-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+.driver-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.driver-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--team-colour);
+}
+
+.driver-card__number {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 2.25rem;
+  line-height: 1;
+  min-width: 2.5ch;
+  color: var(--team-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.driver-card__name .bilingual__canonical {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+}
+
+.driver-card__stats {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.driver-card__stats .stat__value {
+  color: var(--text);
+}
+
+@media (max-width: 40rem) {
+  .team-detail__head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stat-row {
+    flex-wrap: wrap;
+    gap: 1.25rem 2rem;
   }
 }

@@ -1,3 +1,4 @@
+import { indexOpenF1Drivers, type OpenF1DriverInfo, type RawOpenF1Driver } from './openf1.ts';
 import {
   sessionOrder,
   type DriverStanding,
@@ -156,11 +157,40 @@ const toSessions = (race: RawRace): Session[] => {
   );
 };
 
-const toTeamRef = (raw: RawConstructor): TeamRef => ({
+type ColourByTeam = ReadonlyMap<string, string>;
+
+const toTeamRef = (raw: RawConstructor, colours: ColourByTeam): TeamRef => ({
   id: raw.constructorId,
   name: raw.name,
   nationality: raw.nationality,
+  colour: colours.get(raw.constructorId) ?? null,
 });
+
+/**
+ * 由車手推導每支車隊的代表色。
+ *
+ * 一位車手的 OpenF1 代表色，歸給他在 Jolpica **最後一支**車隊 —— 賽季中
+ * 轉隊的車手會有多支車隊，最後一支才是現況。同隊兩位車手的顏色相同，
+ * 先到先得。沒有任何車手能對上的車隊（例如兩位都不在最新 session）
+ * 就沒有顏色，由畫面降級處理。
+ */
+const deriveTeamColours = (
+  standings: ReadonlyArray<RawDriverStanding>,
+  openF1: ReadonlyMap<string, OpenF1DriverInfo>,
+): ColourByTeam => {
+  const colours = new Map<string, string>();
+
+  for (const standing of standings) {
+    const code = standing.Driver.code;
+    const team = standing.Constructors.at(-1);
+    if (!code || !team) continue;
+
+    const colour = openF1.get(code)?.teamColour;
+    if (colour && !colours.has(team.constructorId)) colours.set(team.constructorId, colour);
+  }
+
+  return colours;
+};
 
 const toWeekend = (race: RawRace): RaceWeekend => ({
   round: Number(race.round),
@@ -176,27 +206,32 @@ const toWeekend = (race: RawRace): RaceWeekend => ({
   sessions: toSessions(race),
 });
 
-const toDriverStanding = (raw: RawDriverStanding): DriverStanding => ({
-  position: Number(raw.position),
-  points: Number(raw.points),
-  wins: Number(raw.wins),
-  driver: {
-    id: raw.Driver.driverId,
-    code: raw.Driver.code ?? null,
-    permanentNumber: raw.Driver.permanentNumber ?? null,
-    givenName: raw.Driver.givenName,
-    familyName: raw.Driver.familyName,
-    nationality: raw.Driver.nationality,
-  },
-  teams: raw.Constructors.map(toTeamRef),
-});
+const toDriverStanding =
+  (colours: ColourByTeam, openF1: ReadonlyMap<string, OpenF1DriverInfo>) =>
+  (raw: RawDriverStanding): DriverStanding => ({
+    position: Number(raw.position),
+    points: Number(raw.points),
+    wins: Number(raw.wins),
+    driver: {
+      id: raw.Driver.driverId,
+      code: raw.Driver.code ?? null,
+      permanentNumber: raw.Driver.permanentNumber ?? null,
+      givenName: raw.Driver.givenName,
+      familyName: raw.Driver.familyName,
+      nationality: raw.Driver.nationality,
+      headshotUrl: (raw.Driver.code && openF1.get(raw.Driver.code)?.headshotUrl) || null,
+    },
+    teams: raw.Constructors.map((team) => toTeamRef(team, colours)),
+  });
 
-const toTeamStanding = (raw: RawConstructorStanding): TeamStanding => ({
-  position: Number(raw.position),
-  points: Number(raw.points),
-  wins: Number(raw.wins),
-  team: toTeamRef(raw.Constructor),
-});
+const toTeamStanding =
+  (colours: ColourByTeam) =>
+  (raw: RawConstructorStanding): TeamStanding => ({
+    position: Number(raw.position),
+    points: Number(raw.points),
+    wins: Number(raw.wins),
+    team: toTeamRef(raw.Constructor, colours),
+  });
 
 /**
  * Season 必須是四位數年份。
@@ -218,6 +253,8 @@ export interface NormaliseInput {
   races: RawRacesResponse;
   driverStandings: RawDriverStandingsResponse;
   teamStandings: RawTeamStandingsResponse;
+  /** 可省略 —— OpenF1 失效時仍能產出沒有顏色與照片的快照。 */
+  openF1Drivers?: ReadonlyArray<RawOpenF1Driver>;
   fetchedAt: string;
 }
 
@@ -231,12 +268,15 @@ export const normaliseSeason = ({
   races,
   driverStandings,
   teamStandings,
+  openF1Drivers = [],
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
-  const driverList = driverStandings.MRData.StandingsTable.StandingsLists[0];
-  const teamList = teamStandings.MRData.StandingsTable.StandingsLists[0];
+  const rawDrivers = driverStandings.MRData.StandingsTable.StandingsLists[0]?.DriverStandings ?? [];
+  const rawTeams = teamStandings.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings ?? [];
 
+  const openF1 = indexOpenF1Drivers(openF1Drivers);
+  const colours = deriveTeamColours(rawDrivers, openF1);
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
   return {
@@ -244,11 +284,9 @@ export const normaliseSeason = ({
     completedRound: Number.isFinite(completedRound) && completedRound > 0 ? completedRound : null,
     fetchedAt,
     weekends: raceTable.Races.map(toWeekend).sort((a, b) => a.round - b.round),
-    driverStandings: (driverList?.DriverStandings ?? [])
-      .map(toDriverStanding)
+    driverStandings: rawDrivers
+      .map(toDriverStanding(colours, openF1))
       .sort((a, b) => a.position - b.position),
-    teamStandings: (teamList?.ConstructorStandings ?? [])
-      .map(toTeamStanding)
-      .sort((a, b) => a.position - b.position),
+    teamStandings: rawTeams.map(toTeamStanding(colours)).sort((a, b) => a.position - b.position),
   };
 };

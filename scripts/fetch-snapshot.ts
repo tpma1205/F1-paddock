@@ -16,8 +16,10 @@ import {
   type RawRacesResponse,
   type RawTeamStandingsResponse,
 } from '../src/data/jolpica.ts';
+import type { RawOpenF1Driver } from '../src/data/openf1.ts';
 
 const BASE = 'https://api.jolpi.ca/ergast/f1/current';
+const OPENF1_DRIVERS = 'https://api.openf1.org/v1/drivers?session_key=latest';
 
 /**
  * 快照以 season 為索引鍵存放（`snapshots/<season>.json`，見 docs/adr/0004）。
@@ -41,35 +43,51 @@ const pathForSeason = (season: string): string => {
   return target;
 };
 
-const getJson = async <T>(path: string): Promise<T> => {
-  const url = `${BASE}${path}`;
+const getJson = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, { headers: { accept: 'application/json' } });
   if (!response.ok) throw new Error(`${url} -> HTTP ${response.status}`);
   return (await response.json()) as T;
 };
 
+/**
+ * OpenF1 只補充顏色與照片，**它失效不該阻止快照產出** —— 沒有顏色的
+ * 車隊會由畫面降級處理，但沒有賽程與積分的網站就什麼都不是。
+ */
+const getOpenF1Drivers = async (): Promise<RawOpenF1Driver[]> => {
+  try {
+    return await getJson<RawOpenF1Driver[]>(OPENF1_DRIVERS);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`⚠ OpenF1 抓取失敗（${message}），本次快照將沒有代表色與車手照片。`);
+    return [];
+  }
+};
+
 const main = async (): Promise<void> => {
   try {
     // 循序而非平行 —— Jolpica 是免費且由志工維護的服務，抓取應保持節制。
-    const races = await getJson<RawRacesResponse>('/races/?format=json&limit=30');
+    const races = await getJson<RawRacesResponse>(`${BASE}/races/?format=json&limit=30`);
     const driverStandings = await getJson<RawDriverStandingsResponse>(
-      '/driverstandings/?format=json&limit=30',
+      `${BASE}/driverstandings/?format=json&limit=30`,
     );
     const teamStandings = await getJson<RawTeamStandingsResponse>(
-      '/constructorstandings/?format=json&limit=30',
+      `${BASE}/constructorstandings/?format=json&limit=30`,
     );
+    const openF1Drivers = await getOpenF1Drivers();
 
     const snapshot = normaliseSeason({
       races,
       driverStandings,
       teamStandings,
+      openF1Drivers,
       fetchedAt: new Date().toISOString(),
     });
 
     mkdirSync(OUTPUT_DIR, { recursive: true });
     writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+    const coloured = snapshot.teamStandings.filter((s) => s.team.colour !== null).length;
     console.log(
-      `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站`,
+      `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站、${coloured}/${snapshot.teamStandings.length} 隊有代表色`,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

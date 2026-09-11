@@ -97,6 +97,82 @@ describe('normaliseSeason', () => {
   });
 });
 
+describe('OpenF1 合併 —— 以車手縮寫為橋樑', () => {
+  const snapshot = buildFixtureSnapshot();
+  const teamOf = (id: string) => snapshot.teamStandings.find((s) => s.team.id === id)?.team;
+  const driverOf = (id: string) => snapshot.driverStandings.find((s) => s.driver.id === id)?.driver;
+
+  it('每支車隊由其車手取得代表色，正規化為含 # 的小寫十六進位', () => {
+    expect(teamOf('mclaren')?.colour).toBe('#f47600');
+    expect(teamOf('mercedes')?.colour).toBe('#00d7b6');
+    expect(teamOf('cadillac')?.colour).toBe('#909090');
+  });
+
+  it('本季每支車隊都有代表色', () => {
+    const missing = snapshot.teamStandings.filter((s) => s.team.colour === null).map((s) => s.team.id);
+    expect(missing).toEqual([]);
+  });
+
+  it('車手積分榜內的車隊參照也帶有代表色', () => {
+    const norris = snapshot.driverStandings.find((s) => s.driver.id === 'norris');
+    expect(norris?.teams[0]?.colour).toBe('#f47600');
+  });
+
+  it('車手照片來自 OpenF1', () => {
+    expect(driverOf('norris')?.headshotUrl).toMatch(/^https:\/\/media\.formula1\.com\//);
+  });
+
+  it('OpenF1 的 headshot_url 為 null 時，車手照片為 null（真實案例：角田）', () => {
+    expect(driverOf('tsunoda')?.headshotUrl).toBeNull();
+  });
+
+  it('不在最新 session 的車手沒有照片，但其車隊仍由隊友取得顏色（真實案例：Hadjar）', () => {
+    const hadjar = snapshot.driverStandings.find((s) => s.driver.id === 'hadjar');
+    expect(hadjar?.driver.headshotUrl).toBeNull();
+    expect(hadjar?.teams.at(-1)?.colour).not.toBeNull();
+  });
+
+  it('省略 OpenF1 資料時仍能產出快照，只是沒有顏色與照片', () => {
+    const withoutOpenF1 = normaliseSeason({
+      races: { MRData: { RaceTable: { season: '2026', Races: [] } } },
+      driverStandings: {
+        MRData: {
+          StandingsTable: {
+            season: '2026',
+            round: '1',
+            StandingsLists: [
+              {
+                DriverStandings: [
+                  {
+                    position: '1',
+                    points: '25',
+                    wins: '1',
+                    Driver: {
+                      driverId: 'x',
+                      code: 'XXX',
+                      givenName: 'X',
+                      familyName: 'Y',
+                      nationality: 'Z',
+                    },
+                    Constructors: [{ constructorId: 't', name: 'T', nationality: 'Z' }],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+      teamStandings: {
+        MRData: { StandingsTable: { season: '2026', round: '1', StandingsLists: [] } },
+      },
+      fetchedAt: '2026-01-01T00:00:00.000Z',
+    });
+
+    expect(withoutOpenF1.driverStandings[0]?.driver.headshotUrl).toBeNull();
+    expect(withoutOpenF1.driverStandings[0]?.teams[0]?.colour).toBeNull();
+  });
+});
+
 /**
  * 資料異常時的降級行為。
  *

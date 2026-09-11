@@ -1,10 +1,12 @@
 import {
   SESSION_DURATION_MINUTES,
+  type DriverSummary,
   type RaceWeekend,
   type Session,
   type SessionStatus,
   type SessionView,
   type Snapshot,
+  type TeamView,
   type ViewModel,
   type WeekendView,
 } from './types.ts';
@@ -39,6 +41,40 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number): WeekendView => ({
 });
 
 /**
+ * 把車手歸到其**當前**車隊底下。
+ *
+ * 賽季中轉隊的車手在 Jolpica 會列出多支車隊，最後一支才是現況；
+ * 只歸到那一支，避免同一人出現在兩隊的名單裡。
+ */
+const buildTeams = (snapshot: Snapshot): TeamView[] => {
+  const driversByTeam = new Map<string, DriverSummary[]>();
+
+  for (const standing of snapshot.driverStandings) {
+    const currentTeam = standing.teams.at(-1);
+    if (!currentTeam) continue;
+
+    const summary: DriverSummary = {
+      driver: standing.driver,
+      position: standing.position,
+      points: standing.points,
+      wins: standing.wins,
+    };
+    driversByTeam.set(currentTeam.id, [...(driversByTeam.get(currentTeam.id) ?? []), summary]);
+  }
+
+  return snapshot.teamStandings.map((standing) => ({
+    id: standing.team.id,
+    name: standing.team.name,
+    nationality: standing.team.nationality,
+    colour: standing.team.colour,
+    position: standing.position,
+    points: standing.points,
+    wins: standing.wins,
+    drivers: (driversByTeam.get(standing.team.id) ?? []).sort((a, b) => a.position - b.position),
+  }));
+};
+
+/**
  * 由 Snapshot 與**注入的**現在時間推導出畫面所需的一切。
  *
  * `now` 是顯式參數而非系統時鐘：Next Session 推導、Session 狀態與
@@ -49,6 +85,7 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number): WeekendView => ({
  */
 export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   const nowMs = now.getTime();
+  const teams = buildTeams(snapshot);
 
   // 尚未結束的最早一個場次即為 Next Session。
   // 用「尚未結束」而非「尚未開始」，是為了讓正在進行中的場次仍是聚焦對象，
@@ -63,6 +100,7 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
     return {
       season: snapshot.season,
       fetchedAt: snapshot.fetchedAt,
+      teams,
       focusWeekend: weekendView,
       nextSession: {
         weekend: weekendView,
@@ -77,6 +115,7 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   return {
     season: snapshot.season,
     fetchedAt: snapshot.fetchedAt,
+    teams,
     focusWeekend: null,
     nextSession: null,
     isOffSeason: true,

@@ -4,13 +4,13 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `/teams` 列出本季全部 Team，含 logo、中英名稱、積分、名次
-- [ ] `/teams/:id` 顯示該隊兩位 Driver、積分、勝場、名次
-- [ ] 所有 logo 渲染進**同一固定尺寸容器**並施以統一的代表色處理
-- [ ] Audi 與 Cadillac 使用自製字標（官方 CDN 查無檔案）
-- [ ] 任何 logo 載入失敗時自動降級為字標，畫面不出現破圖
-- [ ] Team 代表色取自資料而非寫死
-- [ ] 低對比代表色（如 Cadillac、Red Bull）作為文字使用時自動提亮，作為圖形裝飾時保留原色
-- [ ] 窄螢幕版型可用
+- [x] `/teams` 列出本季全部 Team，含 logo、中英名稱、積分、名次
+- [x] `/teams/:id` 顯示該隊兩位 Driver、積分、勝場、名次
+- [x] 所有 logo 渲染進**同一固定尺寸容器**並施以統一的代表色處理
+- [x] Audi 與 Cadillac 使用自製字標（官方 CDN 查無檔案）
+- [x] 任何 logo 載入失敗時自動降級為字標，畫面不出現破圖
+- [x] Team 代表色取自資料而非寫死
+- [x] 低對比代表色（如 Cadillac、Red Bull）作為文字使用時自動提亮，作為圖形裝飾時保留原色
+- [x] 窄螢幕版型可用

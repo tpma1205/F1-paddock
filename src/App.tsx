@@ -1,131 +1,65 @@
 import { useMemo, type JSX } from 'react';
-import { motion } from 'motion/react';
+import { BrowserRouter, NavLink, Route, Routes } from 'react-router';
 import { bundledSnapshot } from './data/snapshot.ts';
 import { buildViewModel } from './domain/viewModel.ts';
 import { useNow } from './app/useNow.ts';
-import { useEntrance } from './app/motion.ts';
-import { SessionPanel } from './app/SessionPanel.tsx';
-import { BilingualName } from './app/BilingualName.tsx';
-import { localisedCircuit, localisedRaceWeekend } from './data/localisation.ts';
-import {
-  SESSION_LABEL,
-  formatFetchedAt,
-  formatTimeZoneLabel,
-  pad2,
-  resolveTimeZone,
-  toCountdown,
-} from './app/formatting.ts';
+import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/formatting.ts';
+import { HomePage } from './pages/HomePage.tsx';
+import { TeamsPage } from './pages/TeamsPage.tsx';
+import { TeamPage } from './pages/TeamPage.tsx';
+
+/**
+ * 路由的 basename 取自 Vite 的 base（`/f1-paddock/`），不另外寫一份 ——
+ * 兩者不一致時 GitHub Pages 上所有連結都會壞（見 docs/adr/0002）。
+ */
+const BASENAME = import.meta.env.BASE_URL.replace(/\/$/, '');
 
 export const App = (): JSX.Element => {
   const now = useNow();
   const timeZone = useMemo(resolveTimeZone, []);
   const viewModel = useMemo(() => buildViewModel(bundledSnapshot, now), [now]);
-  const { container, item } = useEntrance();
-
-  const { season, fetchedAt, nextSession, focusWeekend, isOffSeason } = viewModel;
   const timeZoneLabel = formatTimeZoneLabel(now, timeZone);
 
   return (
-    <div className="page">
-      <header className="brand">
-        <span className="brand__mark" aria-hidden="true" />
-        <span className="brand__name">F1 PADDOCK</span>
-      </header>
+    <BrowserRouter basename={BASENAME}>
+      <div className="page">
+        <header className="topbar">
+          <NavLink to="/" className="brand" end>
+            <span className="brand__mark" aria-hidden="true" />
+            <span className="brand__name">F1 PADDOCK</span>
+          </NavLink>
+          <nav className="nav" aria-label="主要導覽">
+            <NavLink to="/" end>
+              首頁
+            </NavLink>
+            <NavLink to="/teams">車隊</NavLink>
+          </nav>
+        </header>
 
-      <main>
-        <motion.section className="hero" variants={container} initial="hidden" animate="shown">
-          <motion.p className="hero__eyebrow" variants={item}>
-            {season} 賽季
-            {focusWeekend && <> · 第 {focusWeekend.round} 站</>}
-          </motion.p>
+        <main>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <HomePage viewModel={viewModel} timeZone={timeZone} timeZoneLabel={timeZoneLabel} />
+              }
+            />
+            <Route
+              path="/teams"
+              element={<TeamsPage season={viewModel.season} teams={viewModel.teams} />}
+            />
+            <Route
+              path="/teams/:teamId"
+              element={<TeamPage season={viewModel.season} teams={viewModel.teams} />}
+            />
+          </Routes>
+        </main>
 
-          {isOffSeason || !nextSession ? (
-            <>
-              <motion.h1 className="hero__title" variants={item}>
-                本季已結束
-              </motion.h1>
-              <motion.p className="hero__note" variants={item}>
-                下一季賽程公布後，此處將顯示開幕倒數。
-              </motion.p>
-            </>
-          ) : (
-            <>
-              <motion.h1 className="hero__title" variants={item}>
-                <BilingualName
-                  canonical={nextSession.weekend.name}
-                  localised={localisedRaceWeekend(nextSession.weekend.name)}
-                  variant="hero"
-                />
-              </motion.h1>
-
-              <motion.p className="hero__circuit" variants={item}>
-                <BilingualName
-                  canonical={nextSession.weekend.circuit.name}
-                  localised={localisedCircuit(nextSession.weekend.circuit.id)}
-                />
-                <span className="hero__locality">
-                  {nextSession.weekend.circuit.locality}, {nextSession.weekend.circuit.country}
-                </span>
-              </motion.p>
-
-              <motion.div className="hero__next" variants={item}>
-                <p className="hero__session">
-                  {SESSION_LABEL[nextSession.session.kind]}
-                  {nextSession.session.status === 'live' && <span className="pill">進行中</span>}
-                </p>
-
-                {nextSession.session.status === 'live' ? (
-                  <p className="hero__live">正在進行</p>
-                ) : (
-                  <HeroCountdown ms={nextSession.msUntilStart} />
-                )}
-              </motion.div>
-            </>
-          )}
-        </motion.section>
-
-        {focusWeekend && nextSession && (
-          <SessionPanel
-            weekend={focusWeekend}
-            nextSessionKind={nextSession.session.kind}
-            msUntilNext={nextSession.msUntilStart}
-            timeZone={timeZone}
-            timeZoneLabel={timeZoneLabel}
-          />
-        )}
-      </main>
-
-      <footer className="meta">
-        <span>{timeZoneLabel}</span>
-        <span>資料更新於 {formatFetchedAt(fetchedAt, timeZone)}</span>
-      </footer>
-    </div>
-  );
-};
-
-const HeroCountdown = ({ ms }: { ms: number }): JSX.Element => {
-  const { days, hours, minutes, seconds } = toCountdown(ms);
-
-  return (
-    <p className="countdown">
-      {days > 0 && (
-        <span className="countdown__part">
-          <span className="countdown__value">{days}</span>
-          <span className="countdown__unit">天</span>
-        </span>
-      )}
-      <span className="countdown__part">
-        <span className="countdown__value">{pad2(hours)}</span>
-        <span className="countdown__unit">時</span>
-      </span>
-      <span className="countdown__part">
-        <span className="countdown__value">{pad2(minutes)}</span>
-        <span className="countdown__unit">分</span>
-      </span>
-      <span className="countdown__part">
-        <span className="countdown__value">{pad2(seconds)}</span>
-        <span className="countdown__unit">秒</span>
-      </span>
-    </p>
+        <footer className="meta">
+          <span>{timeZoneLabel}</span>
+          <span>資料更新於 {formatFetchedAt(viewModel.fetchedAt, timeZone)}</span>
+        </footer>
+      </div>
+    </BrowserRouter>
   );
 };

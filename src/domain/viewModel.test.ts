@@ -163,6 +163,31 @@ describe('buildViewModel', () => {
     });
   });
 
+  describe('車隊', () => {
+    const { teams } = at('2026-09-10T12:00:00Z');
+
+    it('依名次排序，含積分、勝場與代表色', () => {
+      expect(teams.map((t) => t.position)).toEqual(Array.from({ length: 11 }, (_, i) => i + 1));
+      expect(teams[0]).toMatchObject({ id: 'mercedes', points: 468, wins: 9, colour: '#00d7b6' });
+    });
+
+    it('每支車隊底下是它的車手，依車手名次排序', () => {
+      const mercedes = teams.find((t) => t.id === 'mercedes');
+      expect(mercedes?.drivers.map((d) => d.driver.id)).toEqual(['antonelli', 'russell']);
+      expect(mercedes?.drivers[0]).toMatchObject({ position: 1, points: 267, wins: 7 });
+    });
+
+    it('每位車手恰好出現在一支車隊底下', () => {
+      const all = teams.flatMap((t) => t.drivers.map((d) => d.driver.id));
+      expect(all).toHaveLength(23);
+      expect(new Set(all).size).toBe(23);
+    });
+
+    it('車隊資料不隨時間改變 —— Off-season 時依然完整', () => {
+      expect(at('2026-12-31T00:00:00Z').teams).toHaveLength(11);
+    });
+  });
+
   it('保留球季與抓取時間供畫面標示資料新鮮度', () => {
     const vm = at('2026-09-10T12:00:00Z');
 

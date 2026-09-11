@@ -79,12 +79,16 @@ export interface DriverRef {
   givenName: string;
   familyName: string;
   nationality: string;
+  /** 來自 OpenF1；缺漏時為 null，畫面降級為代表色 + 縮寫（見 docs/adr/0003）。 */
+  headshotUrl: string | null;
 }
 
 export interface TeamRef {
   id: string;
   name: string;
   nationality: string;
+  /** 代表色（含 # 的十六進位），來自 OpenF1；缺漏時為 null。 */
+  colour: string | null;
 }
 
 export interface DriverStanding {
@@ -145,9 +149,31 @@ export interface NextSession {
   msUntilStart: number;
 }
 
+export interface DriverSummary {
+  driver: DriverRef;
+  position: number;
+  points: number;
+  wins: number;
+}
+
+/** 車隊的畫面模型：積分榜資料 + 該隊車手，依名次排序。 */
+export interface TeamView {
+  id: string;
+  name: string;
+  nationality: string;
+  colour: string | null;
+  position: number;
+  points: number;
+  wins: number;
+  /** 以車手**當前**車隊歸類（賽季中轉隊者只出現在最後一隊），依名次排序。 */
+  drivers: DriverSummary[];
+}
+
 export interface ViewModel {
   season: string;
   fetchedAt: string;
+  /** 依名次排序。 */
+  teams: TeamView[];
   /**
    * 目前聚焦的 Race Weekend —— 含有 Next Session 的那一個。
    * 球季已結束（Off-season）時為 null。
