@@ -24,6 +24,8 @@
   /* 網站骨幹色 —— 不用於內容 */
   --f1-red: #e10600;
   --f1-red-bright: #ff1801;
+  /* 同一個紅的 RGB 三元組，供需要透明度的地方使用，避免另外寫死一組數字 */
+  --f1-red-rgb: 225 6 0;
 
   --font-display: 'Titillium Web', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   --font-body: 'Noto Sans TC', 'Titillium Web', system-ui, -apple-system, sans-serif;
@@ -67,8 +69,8 @@ body {
   height: 70vh;
   background: radial-gradient(
     62% 58% at 50% -8%,
-    rgba(225, 6, 0, 0.16) 0%,
-    rgba(225, 6, 0, 0.04) 42%,
+    rgb(var(--f1-red-rgb) / 0.16) 0%,
+    rgb(var(--f1-red-rgb) / 0.04) 42%,
     transparent 72%
   );
   pointer-events: none;

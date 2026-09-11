@@ -54,7 +54,7 @@ export const DRIVER_NAMES: Record<string, LocalisedName> = {
   arvid_lindblad: provisional('林德布拉德'),
   colapinto: provisional('柯拉平托'),
   bearman: name('貝爾曼'),
-  bortoleto: provisional('波爾托萊托'),
+  bortoleto: provisional('博托萊托'),
   hulkenberg: name('霍肯柏格'),
   sainz: name('塞恩斯'),
   albon: name('阿爾本'),
@@ -70,6 +70,8 @@ export const DRIVER_NAMES: Record<string, LocalisedName> = {
 /** 賽道 —— 以 Jolpica 的 circuitId 為鍵。 */
 export const CIRCUIT_NAMES: Record<string, LocalisedName> = {
   albert_park: name('亞伯特公園賽道'),
+  // 「賽車場」在 CONTEXT.md 列為避免用詞，但這是場館的官方中文名，屬 Localised Name
+  // 而非 Interface Copy —— 語彙表約束的是我們稱呼「賽道」這個概念的方式，不是專有名詞。
   shanghai: name('上海國際賽車場'),
   suzuka: name('鈴鹿賽道'),
   miami: name('邁阿密國際賽道'),

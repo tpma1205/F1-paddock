@@ -4,7 +4,6 @@ import { useReducedMotion, type Variants } from 'motion/react';
 export interface Entrance {
   container: Variants;
   item: Variants;
-  reduced: boolean;
 }
 
 /**
@@ -16,16 +15,15 @@ export interface Entrance {
  *    滾動時才不會掉幀。
  * 2. **尊重 `prefers-reduced-motion`** —— 使用者開啟減少動畫時，位移一律
  *    歸零、只保留淡入，而不是整個停用（完全不動會讓元素突兀地出現）。
- * 3. **變體物件必須穩定** —— 倒數計時讓畫面每秒 re-render 一次；若每次都
- *    回傳新的變體物件，Motion 會重新解析並重播整段 stagger，元素會永遠
- *    卡在淡入的過程中。變體只跟著 reduced 改變，因此以 useMemo 固定住。
+ * 3. **變體物件保持穩定** —— 倒數計時讓畫面每秒 re-render 一次（一天約
+ *    86,400 次）。變體只跟著 reduced 改變，以 useMemo 固定住，避免 Motion
+ *    每次都拿到新物件而重新解析。這是節省無謂工作，不是修正可見的 bug。
  */
 export const useEntrance = (): Entrance => {
   const reduced = useReducedMotion() ?? false;
 
   return useMemo(
     () => ({
-      reduced,
       container: {
         hidden: {},
         shown: {

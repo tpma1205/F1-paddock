@@ -74,8 +74,7 @@ export const SessionPanel = ({
           <SessionRow
             key={session.kind}
             session={session}
-            isNext={session.kind === nextSessionKind}
-            msUntilNext={msUntilNext}
+            countdownMs={session.kind === nextSessionKind ? msUntilNext : null}
             timeZone={timeZone}
             variants={item}
           />
@@ -87,19 +86,14 @@ export const SessionPanel = ({
 
 interface SessionRowProps {
   session: SessionView;
-  isNext: boolean;
-  msUntilNext: number;
+  /** 距離開始的毫秒數；只有 Next Session 那一列有值，其餘為 null。 */
+  countdownMs: number | null;
   timeZone: string;
   variants: Entrance['item'];
 }
 
-const SessionRow = ({
-  session,
-  isNext,
-  msUntilNext,
-  timeZone,
-  variants,
-}: SessionRowProps): JSX.Element => {
+const SessionRow = ({ session, countdownMs, timeZone, variants }: SessionRowProps): JSX.Element => {
+  const isNext = countdownMs !== null;
   const classes = ['session', `session--${session.status}`, isNext ? 'session--next' : '']
     .filter(Boolean)
     .join(' ');
@@ -115,9 +109,9 @@ const SessionRow = ({
 
       <span className="session__status">
         {session.status === 'live' && <span className="pill">進行中</span>}
-        {session.status === 'upcoming' && isNext && (
+        {session.status === 'upcoming' && countdownMs !== null && (
           <>
-            即將登場 · 倒數 <strong>{formatCompactCountdown(msUntilNext)}</strong>
+            即將登場 · 倒數 <strong>{formatCompactCountdown(countdownMs)}</strong>
           </>
         )}
         {session.status === 'finished' && '已結束'}
