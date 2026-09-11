@@ -6,13 +6,13 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 對照表為進版控的靜態資料，非抓取結果
-- [ ] 涵蓋本季全部 Team、Driver、Circuit 與 Race Weekend 名稱
-- [ ] 譯名採台灣慣用譯法（麥拉倫／賓士／奧斯頓馬丁），不採中國譯名
-- [ ] 無公認譯名者標記為 Provisional Name，且畫面上可辨識
-- [ ] 對照表缺漏某筆時，畫面**降級為只顯示英文而非顯示空白或報錯**
-- [ ] 雙語呈現規則落成可複用元件：專有名詞英文大字 + 中文小字
-- [ ] Interface Copy 全繁體中文，不做雙語並陳
-- [ ] Race Weekend 中文名於 Hero 與場次面板上生效
+- [x] 對照表為進版控的靜態資料，非抓取結果
+- [x] 涵蓋本季全部 Team、Driver、Circuit 與 Race Weekend 名稱
+- [x] 譯名採台灣慣用譯法（麥拉倫／賓士／奧斯頓馬丁），不採中國譯名
+- [x] 無公認譯名者標記為 Provisional Name，且畫面上可辨識
+- [x] 對照表缺漏某筆時，畫面**降級為只顯示英文而非顯示空白或報錯**
+- [x] 雙語呈現規則落成可複用元件：專有名詞英文大字 + 中文小字
+- [x] Interface Copy 全繁體中文，不做雙語並陳
+- [x] Race Weekend 中文名於 Hero 與場次面板上生效

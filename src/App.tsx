@@ -5,6 +5,8 @@ import { buildViewModel } from './domain/viewModel.ts';
 import { useNow } from './app/useNow.ts';
 import { useEntrance } from './app/motion.ts';
 import { SessionPanel } from './app/SessionPanel.tsx';
+import { BilingualName } from './app/BilingualName.tsx';
+import { localisedCircuit, localisedRaceWeekend } from './data/localisation.ts';
 import {
   SESSION_LABEL,
   formatFetchedAt,
@@ -49,11 +51,18 @@ export const App = (): JSX.Element => {
           ) : (
             <>
               <motion.h1 className="hero__title" variants={item}>
-                {nextSession.weekend.name}
+                <BilingualName
+                  canonical={nextSession.weekend.name}
+                  localised={localisedRaceWeekend(nextSession.weekend.name)}
+                  variant="hero"
+                />
               </motion.h1>
 
               <motion.p className="hero__circuit" variants={item}>
-                {nextSession.weekend.circuit.name}
+                <BilingualName
+                  canonical={nextSession.weekend.circuit.name}
+                  localised={localisedCircuit(nextSession.weekend.circuit.id)}
+                />
                 <span className="hero__locality">
                   {nextSession.weekend.circuit.locality}, {nextSession.weekend.circuit.country}
                 </span>

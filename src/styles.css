@@ -248,6 +248,11 @@ body {
   color: var(--text-faint);
 }
 
+/* 分隔點與地名視為一體，避免換行時分隔點孤懸在行尾 */
+.panel__locality {
+  white-space: nowrap;
+}
+
 .panel__round {
   flex-shrink: 0;
   font-family: var(--font-display);
@@ -352,6 +357,68 @@ body {
 
 .session--next .session__status {
   color: var(--text-dim);
+}
+
+/* ---------------------------------------------------------- 雙語名稱 */
+
+/*
+ * 專有名詞：英文大字在上、中文小字在下。
+ * 中文缺漏時整個 .bilingual__localised 不會被渲染，版面自然收合。
+ */
+.bilingual {
+  display: block;
+}
+
+.bilingual__canonical {
+  display: block;
+}
+
+.bilingual__localised {
+  display: block;
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--text-dim);
+  letter-spacing: 0.02em;
+}
+
+.bilingual--hero .bilingual__localised {
+  margin-top: 0.65rem;
+  font-size: clamp(1.0625rem, 2.8vw, 1.75rem);
+  letter-spacing: 0.06em;
+}
+
+.bilingual--panel .bilingual__localised {
+  margin-top: 0.1rem;
+  font-size: 0.8125rem;
+}
+
+/* 行內：英文與中文同一行，中間以空白分隔 */
+.bilingual--inline,
+.bilingual--inline .bilingual__canonical,
+.bilingual--inline .bilingual__localised {
+  display: inline;
+}
+
+.bilingual--inline .bilingual__localised {
+  font-size: inherit;
+}
+
+.bilingual--inline .bilingual__localised::before {
+  content: '\00a0\00a0';
+}
+
+/* 暫定譯名 —— 可辨識但不喧賓奪主 */
+.bilingual__provisional {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  vertical-align: 0.15em;
+  cursor: help;
 }
 
 /* ------------------------------------------------------------ 小元件 */

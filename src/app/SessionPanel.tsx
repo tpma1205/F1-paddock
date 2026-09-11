@@ -2,6 +2,8 @@ import { motion } from 'motion/react';
 import type { JSX } from 'react';
 import type { SessionKind, SessionView, WeekendView } from '../domain/types.ts';
 import { Flag } from './Flag.tsx';
+import { BilingualName } from './BilingualName.tsx';
+import { localisedCircuit, localisedRaceWeekend } from '../data/localisation.ts';
 import { useEntrance, type Entrance } from './motion.ts';
 import {
   SESSION_SHORT_LABEL,
@@ -45,9 +47,19 @@ export const SessionPanel = ({
       <motion.header className="panel__head" variants={item}>
         <Flag country={weekend.circuit.country} />
         <div className="panel__title">
-          <h2>{weekend.name}</h2>
+          <h2>
+            <BilingualName
+              canonical={weekend.name}
+              localised={localisedRaceWeekend(weekend.name)}
+              variant="panel"
+            />
+          </h2>
           <p>
-            {weekend.circuit.name} · {weekend.circuit.locality}
+            <BilingualName
+              canonical={weekend.circuit.name}
+              localised={localisedCircuit(weekend.circuit.id)}
+            />
+            <span className="panel__locality">· {weekend.circuit.locality}</span>
           </p>
         </div>
         <span className="panel__round">R{weekend.round}</span>
