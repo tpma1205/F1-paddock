@@ -4,13 +4,13 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `/circuits` 與 `/circuits/:id` 皆可用，涵蓋本季全部賽道
-- [ ] 賽道平面圖由 GeoJSON 的 LineString 轉為 SVG path 自繪，不使用官方點陣圖
-- [ ] 幾何轉換（投影、正規化、viewBox 貼合）為純函式並具備自己的測試——**這是全案最易出錯的一段**
-- [ ] 不同緯度的賽道形狀不得被壓扁或拉伸
-- [ ] 詳情頁的賽道線隨滾動以 stroke-dashoffset 描繪；`prefers-reduced-motion` 開啟時直接顯示完整線條
-- [ ] 顯示長度、海拔（來自 GeoJSON）與彎道數、圈數、單圈紀錄（來自手工對照表）
-- [ ] 某賽道缺 GeoJSON 時該頁其餘資訊仍完整呈現，不整頁失效
-- [ ] 手機上圖形佔滿寬度且可放大檢視
+- [x] `/circuits` 與 `/circuits/:id` 皆可用，涵蓋本季全部賽道
+- [x] 賽道平面圖由 GeoJSON 的 LineString 轉為 SVG path 自繪，不使用官方點陣圖
+- [x] 幾何轉換（投影、正規化、viewBox 貼合）為純函式並具備自己的測試——**這是全案最易出錯的一段**
+- [x] 不同緯度的賽道形狀不得被壓扁或拉伸
+- [x] 詳情頁的賽道線隨滾動以 stroke-dashoffset 描繪；`prefers-reduced-motion` 開啟時直接顯示完整線條
+- [x] 顯示長度、海拔（來自 GeoJSON）與彎道數、圈數、單圈紀錄（來自手工對照表）
+- [x] 某賽道缺 GeoJSON 時該頁其餘資訊仍完整呈現，不整頁失效
+- [x] 手機上圖形佔滿寬度且可放大檢視

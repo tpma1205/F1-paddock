@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "fetch": "node scripts/fetch-snapshot.ts"
+    "fetch": "node scripts/fetch-snapshot.ts",
+    "fetch:circuits": "node scripts/fetch-circuits.ts"
   },
   "dependencies": {
     "motion": "13.2.0",

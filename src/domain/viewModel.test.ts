@@ -204,6 +204,23 @@ describe('buildViewModel', () => {
     });
   });
 
+  describe('賽道', () => {
+    const { circuits } = at('2026-09-10T12:00:00Z');
+
+    it('本季 23 站對應 23 條不同賽道', () => {
+      expect(circuits).toHaveLength(23);
+      expect(new Set(circuits.map((c) => c.circuit.id)).size).toBe(23);
+    });
+
+    it('依本季首次出現的 Round 排序，並帶該站的名稱', () => {
+      expect(circuits[0]?.circuit.id).toBe('albert_park');
+      expect(circuits[0]?.weekends).toEqual([{ round: 1, name: 'Australian Grand Prix' }]);
+      expect(circuits.find((c) => c.circuit.id === 'madring')?.weekends).toEqual([
+        { round: 14, name: 'Spanish Grand Prix' },
+      ]);
+    });
+  });
+
   it('保留球季與抓取時間供畫面標示資料新鮮度', () => {
     const vm = at('2026-09-10T12:00:00Z');
 

@@ -169,6 +169,13 @@ export interface DriverView {
   podiums: number | null;
 }
 
+/** 賽道的畫面模型：賽道 + 本季在此舉辦的 Race Weekend。 */
+export interface CircuitView {
+  circuit: Circuit;
+  /** 本季在此賽道舉辦的站次（同一賽道可能不只一站），依 Round 排序。 */
+  weekends: Array<{ round: number; name: string }>;
+}
+
 /** 車隊的畫面模型：積分榜資料 + 該隊車手，依名次排序。 */
 export interface TeamView {
   id: string;
@@ -189,6 +196,8 @@ export interface ViewModel {
   teams: TeamView[];
   /** 依名次排序。 */
   drivers: DriverView[];
+  /** 依本季首次出現的 Round 排序。 */
+  circuits: CircuitView[];
   /**
    * 目前聚焦的 Race Weekend —— 含有 Next Session 的那一個。
    * 球季已結束（Off-season）時為 null。

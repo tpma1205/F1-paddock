@@ -111,7 +111,30 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   text-decoration: none;
+  white-space: nowrap;
   transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+/* 四個連結在窄螢幕會溢出 —— 收緊間距與字距，而非換行 */
+@media (max-width: 30rem) {
+  .topbar {
+    gap: 0.75rem;
+    padding-block: 1.1rem;
+  }
+
+  .brand__name {
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+  }
+
+  .nav {
+    gap: 0;
+  }
+
+  .nav a {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.8125rem;
+  }
 }
 
 .nav a:hover {
@@ -139,6 +162,7 @@ body {
   font-size: 0.875rem;
   letter-spacing: 0.22em;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 
 /* ---------------------------------------------------------------- Hero */
@@ -1057,5 +1081,290 @@ body {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+/* ------------------------------------------------------------ 賽道平面圖 */
+
+.track-map {
+  display: block;
+  width: 100%;
+}
+
+.track-map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.track-map path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 描繪前就看得到的淡色參照線 */
+.track-map__ghost {
+  stroke: var(--text);
+  stroke-opacity: 0.12;
+  stroke-width: 14;
+}
+
+.track-map__line {
+  stroke: var(--text);
+  stroke-width: 14;
+}
+
+.track-map--static .track-map__ghost {
+  display: none;
+}
+
+.track-map--static .track-map__line {
+  stroke-width: 18;
+  stroke: var(--text-dim);
+}
+
+/* 起跑線 —— 網站骨幹色，不是內容色 */
+.track-map__start-dot {
+  fill: var(--f1-red);
+}
+
+.track-map__start-halo {
+  fill: var(--f1-red);
+  fill-opacity: 0.25;
+}
+
+/* ------------------------------------------------------------ 賽道列表 */
+
+.circuit-grid {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.875rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+}
+
+.circuit-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.circuit-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-faint);
+}
+
+/*
+ * 固定比例的框：賽道形狀有的狹長、有的扁寬，若讓 SVG 依自身比例撐開，
+ * 每張卡片高度都不同、格線會亂跳。SVG 以 preserveAspectRatio 在框內 letterbox。
+ */
+.circuit-card__map {
+  position: relative;
+  display: block;
+  /* aspect-ratio 只是偏好尺寸，內容更高時仍會被撐開；固定高度才可靠 */
+  height: 0;
+  padding-bottom: 62.5%;
+}
+
+.circuit-card__map .track-map {
+  position: absolute;
+  inset: 1.25rem 1.25rem 0.5rem;
+  width: auto;
+}
+
+.circuit-card__map .track-map svg {
+  width: 100%;
+  height: 100%;
+}
+
+.circuit-card__no-map {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.circuit-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--line-soft);
+}
+
+.circuit-card__rounds {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--f1-red-bright);
+}
+
+.circuit-card__body .bilingual__canonical {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  line-height: 1.2;
+}
+
+.circuit-card__place {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.circuit-card__place .flag {
+  width: 24px;
+  height: 18px;
+}
+
+/* ------------------------------------------------------------ 賽道詳情 */
+
+.circuit-detail {
+  padding: clamp(1.5rem, 5vw, 3rem) 0;
+}
+
+.circuit-detail__place {
+  margin: 0.75rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-dim);
+}
+
+.circuit-detail__figure {
+  margin: clamp(2rem, 5vw, 3.5rem) 0 0;
+}
+
+.circuit-detail__zoom {
+  display: block;
+  width: 100%;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: zoom-in;
+  /* 手機上允許雙指縮放整個區塊 */
+  touch-action: pinch-zoom;
+}
+
+.circuit-detail__zoom:focus-visible {
+  outline: 2px solid var(--f1-red);
+  outline-offset: 2px;
+}
+
+.circuit-detail__figure figcaption {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.circuit-detail__facts {
+  margin: clamp(1.5rem, 4vw, 2.5rem) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  gap: 1rem;
+}
+
+.circuit-detail__facts > div {
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.circuit-detail__facts dt {
+  margin-bottom: 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  color: var(--text-faint);
+}
+
+.circuit-detail__facts dd {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.circuit-detail__facts dd strong {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.75rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.circuit-detail__facts dd > span {
+  font-size: 0.875rem;
+  color: var(--text-dim);
+}
+
+.circuit-detail__none {
+  color: var(--text-faint);
+}
+
+.circuit-detail__weekend {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.circuit-detail__round {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--f1-red-bright);
+}
+
+/* ------------------------------------------------------------ 放大檢視 */
+
+.zoom-dialog {
+  width: min(96vw, 1200px);
+  max-width: none;
+  max-height: 96vh;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--text);
+}
+
+.zoom-dialog::backdrop {
+  background: rgb(0 0 0 / 0.75);
+}
+
+.zoom-dialog__body {
+  padding: clamp(1rem, 4vw, 2.5rem);
+  /* 對話框內允許雙指縮放與拖曳 */
+  touch-action: pinch-zoom;
+  overflow: auto;
+}
+
+.zoom-dialog__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.4rem 0.9rem;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
 }
 

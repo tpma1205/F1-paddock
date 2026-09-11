@@ -9,6 +9,8 @@ import { TeamsPage } from './pages/TeamsPage.tsx';
 import { TeamPage } from './pages/TeamPage.tsx';
 import { DriversPage } from './pages/DriversPage.tsx';
 import { DriverPage } from './pages/DriverPage.tsx';
+import { CircuitsPage } from './pages/CircuitsPage.tsx';
+import { CircuitPage } from './pages/CircuitPage.tsx';
 
 /**
  * 路由的 basename 取自 Vite 的 base（`/f1-paddock/`），不另外寫一份 ——
@@ -36,6 +38,7 @@ export const App = (): JSX.Element => {
             </NavLink>
             <NavLink to="/teams">車隊</NavLink>
             <NavLink to="/drivers">車手</NavLink>
+            <NavLink to="/circuits">賽道</NavLink>
           </nav>
         </header>
 
@@ -62,6 +65,14 @@ export const App = (): JSX.Element => {
             <Route
               path="/drivers/:driverId"
               element={<DriverPage season={viewModel.season} drivers={viewModel.drivers} />}
+            />
+            <Route
+              path="/circuits"
+              element={<CircuitsPage season={viewModel.season} circuits={viewModel.circuits} />}
+            />
+            <Route
+              path="/circuits/:circuitId"
+              element={<CircuitPage season={viewModel.season} circuits={viewModel.circuits} />}
             />
           </Routes>
         </main>

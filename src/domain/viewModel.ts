@@ -1,5 +1,6 @@
 import {
   SESSION_DURATION_MINUTES,
+  type CircuitView,
   type DriverSummary,
   type DriverView,
   type RaceWeekend,
@@ -85,6 +86,23 @@ const buildDrivers = (snapshot: Snapshot): DriverView[] =>
     podiums: standing.podiums,
   }));
 
+/** 同一條賽道本季可能辦不只一站，以賽道為單位彙整。 */
+const buildCircuits = (snapshot: Snapshot): CircuitView[] => {
+  const byId = new Map<string, CircuitView>();
+
+  for (const weekend of snapshot.weekends) {
+    const existing = byId.get(weekend.circuit.id);
+    const entry = { round: weekend.round, name: weekend.name };
+    if (existing) {
+      existing.weekends.push(entry);
+    } else {
+      byId.set(weekend.circuit.id, { circuit: weekend.circuit, weekends: [entry] });
+    }
+  }
+
+  return [...byId.values()];
+};
+
 /**
  * 由 Snapshot 與**注入的**現在時間推導出畫面所需的一切。
  *
@@ -98,6 +116,7 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   const nowMs = now.getTime();
   const teams = buildTeams(snapshot);
   const drivers = buildDrivers(snapshot);
+  const circuits = buildCircuits(snapshot);
 
   // 尚未結束的最早一個場次即為 Next Session。
   // 用「尚未結束」而非「尚未開始」，是為了讓正在進行中的場次仍是聚焦對象，
@@ -114,6 +133,7 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
       fetchedAt: snapshot.fetchedAt,
       teams,
       drivers,
+      circuits,
       focusWeekend: weekendView,
       nextSession: {
         weekend: weekendView,
@@ -130,6 +150,7 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
     fetchedAt: snapshot.fetchedAt,
     teams,
     drivers,
+    circuits,
     focusWeekend: null,
     nextSession: null,
     isOffSeason: true,
