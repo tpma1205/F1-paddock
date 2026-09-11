@@ -1,7 +1,9 @@
 import { indexOpenF1Drivers, type OpenF1DriverInfo, type RawOpenF1Driver } from './openf1.ts';
 import {
   sessionOrder,
+  type DriverRef,
   type DriverStanding,
+  type RaceResult,
   type RaceWeekend,
   type Session,
   type SessionKind,
@@ -83,12 +85,26 @@ export interface RawRacesResponse {
 
 interface RawResult {
   position: string;
-  Driver: { driverId: string };
+  positionText: string;
+  points: string;
+  grid: string;
+  laps: string;
+  status: string;
+  Driver: RawDriver;
+  Constructor: RawConstructor;
+  Time?: { time: string };
+  FastestLap?: { rank: string };
 }
 
-/** `/results/{position}/` 的回應：每站只含該名次的一筆 Result。 */
+/**
+ * `/results/` 的回應（整季，分頁）。Jolpica 把 limit 上限鎖在 100，
+ * 同一站可能跨頁，合併時必須依 round 分組。
+ */
 export interface RawResultsResponse {
-  MRData: { RaceTable: { season: string; Races: Array<RawRace & { Results: RawResult[] }> } };
+  MRData: {
+    total: string;
+    RaceTable: { season: string; Races: Array<RawRace & { Results: RawResult[] }> };
+  };
 }
 
 export interface RawDriverStandingsResponse {
@@ -202,39 +218,90 @@ const deriveTeamColours = (
   return colours;
 };
 
-const toWeekend = (race: RawRace): RaceWeekend => ({
-  round: Number(race.round),
-  name: race.raceName,
-  circuit: {
-    id: race.Circuit.circuitId,
-    name: race.Circuit.circuitName,
-    locality: race.Circuit.Location.locality,
-    country: race.Circuit.Location.country,
-    lat: Number(race.Circuit.Location.lat),
-    long: Number(race.Circuit.Location.long),
-  },
-  sessions: toSessions(race),
+const toDriverRef = (raw: RawDriver, openF1: ReadonlyMap<string, OpenF1DriverInfo>): DriverRef => ({
+  id: raw.driverId,
+  code: raw.code ?? null,
+  permanentNumber: raw.permanentNumber ?? null,
+  givenName: raw.givenName,
+  familyName: raw.familyName,
+  nationality: raw.nationality,
+  headshotUrl: (raw.code && openF1.get(raw.code)?.headshotUrl) || null,
 });
 
+const CLASSIFIED = /^\d+$/;
+
+const toRaceResult =
+  (colours: ColourByTeam, openF1: ReadonlyMap<string, OpenF1DriverInfo>) =>
+  (raw: RawResult): RaceResult => ({
+    position: Number(raw.position),
+    positionText: raw.positionText,
+    classified: CLASSIFIED.test(raw.positionText),
+    points: Number(raw.points),
+    status: raw.status,
+    laps: Number(raw.laps),
+    grid: Number(raw.grid),
+    time: raw.Time?.time ?? null,
+    fastestLap: raw.FastestLap?.rank === '1',
+    driver: toDriverRef(raw.Driver, openF1),
+    team: toTeamRef(raw.Constructor, colours),
+  });
+
 /**
- * 由「前三名」的賽果回應統計每位車手的頒獎台次數。
- *
- * 用 `/results/1/`、`/2/`、`/3/` 三個請求取代逐站抓取 —— 對一個志工營運
- * 的免費 API，3 次遠好過 23 次。回傳 null（而非空 Map）代表資料未提供，
- * 讓畫面能區分「零次」與「不知道」。
+ * 把分頁的賽果回應依 round 合併。Jolpica 每頁最多 100 筆，一站 22 筆，
+ * 所以同一站常被切在兩頁 —— 不合併的話那一站會少掉一半的車手。
+ */
+const groupResultsByRound = (
+  pages: ReadonlyArray<RawResultsResponse>,
+  toResult: (raw: RawResult) => RaceResult,
+): ReadonlyMap<number, RaceResult[]> => {
+  const byRound = new Map<number, RaceResult[]>();
+
+  for (const page of pages) {
+    for (const race of page.MRData.RaceTable.Races) {
+      const round = Number(race.round);
+      const existing = byRound.get(round) ?? [];
+      byRound.set(round, [...existing, ...race.Results.map(toResult)]);
+    }
+  }
+
+  for (const results of byRound.values()) results.sort((a, b) => a.position - b.position);
+  return byRound;
+};
+
+const toWeekend =
+  (resultsByRound: ReadonlyMap<number, RaceResult[]> | null) =>
+  (race: RawRace): RaceWeekend => {
+    const round = Number(race.round);
+    return {
+      round,
+      name: race.raceName,
+      circuit: {
+        id: race.Circuit.circuitId,
+        name: race.Circuit.circuitName,
+        locality: race.Circuit.Location.locality,
+        country: race.Circuit.Location.country,
+        lat: Number(race.Circuit.Location.lat),
+        long: Number(race.Circuit.Location.long),
+      },
+      sessions: toSessions(race),
+      results: resultsByRound?.get(round) ?? null,
+    };
+  };
+
+/**
+ * 由完整賽果統計每位車手的頒獎台次數（有正式名次且在前三）。
+ * 回傳 null（而非空 Map）代表賽果資料未提供，讓畫面能區分「零次」與「不知道」。
  */
 const tallyPodiums = (
-  responses: ReadonlyArray<RawResultsResponse> | undefined,
+  resultsByRound: ReadonlyMap<number, RaceResult[]> | null,
 ): ReadonlyMap<string, number> | null => {
-  if (!responses || responses.length === 0) return null;
+  if (resultsByRound === null) return null;
 
   const tally = new Map<string, number>();
-  for (const response of responses) {
-    for (const race of response.MRData.RaceTable.Races) {
-      for (const result of race.Results) {
-        const id = result.Driver.driverId;
-        tally.set(id, (tally.get(id) ?? 0) + 1);
-      }
+  for (const results of resultsByRound.values()) {
+    for (const result of results) {
+      if (!result.classified || result.position > 3) continue;
+      tally.set(result.driver.id, (tally.get(result.driver.id) ?? 0) + 1);
     }
   }
   return tally;
@@ -251,15 +318,7 @@ const toDriverStanding =
     points: Number(raw.points),
     wins: Number(raw.wins),
     podiums: podiums === null ? null : (podiums.get(raw.Driver.driverId) ?? 0),
-    driver: {
-      id: raw.Driver.driverId,
-      code: raw.Driver.code ?? null,
-      permanentNumber: raw.Driver.permanentNumber ?? null,
-      givenName: raw.Driver.givenName,
-      familyName: raw.Driver.familyName,
-      nationality: raw.Driver.nationality,
-      headshotUrl: (raw.Driver.code && openF1.get(raw.Driver.code)?.headshotUrl) || null,
-    },
+    driver: toDriverRef(raw.Driver, openF1),
     teams: raw.Constructors.map((team) => toTeamRef(team, colours)),
   });
 
@@ -294,8 +353,8 @@ export interface NormaliseInput {
   teamStandings: RawTeamStandingsResponse;
   /** 可省略 —— OpenF1 失效時仍能產出沒有顏色與照片的快照。 */
   openF1Drivers?: ReadonlyArray<RawOpenF1Driver>;
-  /** 前三名的賽果回應（各一份）；可省略，屆時頒獎台次數為 null。 */
-  podiumResults?: ReadonlyArray<RawResultsResponse>;
+  /** 整季賽果的分頁回應；可省略，屆時 results 與頒獎台次數皆為 null。 */
+  results?: ReadonlyArray<RawResultsResponse>;
   fetchedAt: string;
 }
 
@@ -310,7 +369,7 @@ export const normaliseSeason = ({
   driverStandings,
   teamStandings,
   openF1Drivers = [],
-  podiumResults,
+  results,
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
@@ -319,14 +378,18 @@ export const normaliseSeason = ({
 
   const openF1 = indexOpenF1Drivers(openF1Drivers);
   const colours = deriveTeamColours(rawDrivers, openF1);
-  const podiums = tallyPodiums(podiumResults);
+  const resultsByRound =
+    results && results.length > 0
+      ? groupResultsByRound(results, toRaceResult(colours, openF1))
+      : null;
+  const podiums = tallyPodiums(resultsByRound);
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
   return {
     season: assertValidSeason(raceTable.season),
     completedRound: Number.isFinite(completedRound) && completedRound > 0 ? completedRound : null,
     fetchedAt,
-    weekends: raceTable.Races.map(toWeekend).sort((a, b) => a.round - b.round),
+    weekends: raceTable.Races.map(toWeekend(resultsByRound)).sort((a, b) => a.round - b.round),
     driverStandings: rawDrivers
       .map(toDriverStanding(colours, openF1, podiums))
       .sort((a, b) => a.position - b.position),

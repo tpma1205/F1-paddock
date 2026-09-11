@@ -4,12 +4,12 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `/calendar` 列出本季全部 Round，含日期、Circuit、中英名稱
-- [ ] 已完賽與未來的 Race Weekend 在視覺上明確區分
-- [ ] 已完賽的 Round 直接顯示前三名，不需點入
-- [ ] `/races/:round` 顯示完整 Result：名次、Driver、Team、積分、退賽狀態
-- [ ] 抓取腳本擴充為一併取得逐站 Result 並納入 Snapshot
-- [ ] 未來的 Round 顯示倒數而非賽果
-- [ ] 窄螢幕下積分榜保留名次／車手／積分三欄，其餘收進展開列
+- [x] `/calendar` 列出本季全部 Round，含日期、Circuit、中英名稱
+- [x] 已完賽與未來的 Race Weekend 在視覺上明確區分
+- [x] 已完賽的 Round 直接顯示前三名，不需點入
+- [x] `/races/:round` 顯示完整 Result：名次、Driver、Team、積分、退賽狀態
+- [x] 抓取腳本擴充為一併取得逐站 Result 並納入 Snapshot
+- [x] 未來的 Round 顯示倒數而非賽果
+- [x] 窄螢幕下積分榜保留名次／車手／積分三欄，其餘收進展開列

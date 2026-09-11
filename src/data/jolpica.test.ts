@@ -173,7 +173,50 @@ describe('OpenF1 合併 —— 以車手縮寫為橋樑', () => {
   });
 });
 
-describe('頒獎台統計 —— 由前三名賽果回應推導', () => {
+describe('逐站賽果 —— 分頁合併', () => {
+  const snapshot = buildFixtureSnapshot();
+  const resultsOf = (round: number) => snapshot.weekends.find((w) => w.round === round)?.results;
+
+  it('已完成的 13 站都有賽果，未舉行的沒有（null 而非空陣列）', () => {
+    const withResults = snapshot.weekends.filter((w) => w.results !== null).map((w) => w.round);
+    expect(withResults).toEqual(Array.from({ length: 13 }, (_, i) => i + 1));
+    expect(resultsOf(14)).toBeNull();
+  });
+
+  it('跨頁的站次合併後完整 —— 第 5 站與第 10 站各被切在兩頁', () => {
+    expect(resultsOf(5)).toHaveLength(22);
+    expect(resultsOf(10)).toHaveLength(22);
+  });
+
+  it('依分類序號排序，冠軍在最前', () => {
+    const r13 = resultsOf(13)!;
+    expect(r13[0]).toMatchObject({ position: 1, positionText: '1', classified: true, points: 25 });
+    expect(r13[0]?.driver.id).toBe('antonelli');
+    expect(r13[0]?.team.id).toBe('mercedes');
+    expect(r13[0]?.time).toBe('1:51:15.281');
+    expect(r13.map((r) => r.position)).toEqual([...r13].map((r) => r.position).sort((a, b) => a - b));
+  });
+
+  it('退賽者 positionText 非數字、classified 為 false，但仍保留分類序號與退賽狀態', () => {
+    const dnf = resultsOf(13)!.find((r) => r.positionText === 'R');
+    expect(dnf).toBeDefined();
+    expect(dnf?.classified).toBe(false);
+    expect(dnf?.status).toBe('Retired');
+    expect(dnf?.position).toBeGreaterThan(0);
+  });
+
+  it('賽果內的車手與車隊參照帶有照片與代表色（同一套 OpenF1 合併）', () => {
+    const winner = resultsOf(13)![0]!;
+    expect(winner.driver.headshotUrl).toMatch(/^https:/);
+    expect(winner.team.colour).toBe('#00d7b6');
+  });
+
+  it('最速圈只有一位', () => {
+    expect(resultsOf(13)!.filter((r) => r.fastestLap)).toHaveLength(1);
+  });
+});
+
+describe('頒獎台統計 —— 由完整賽果推導', () => {
   const snapshot = buildFixtureSnapshot();
   const podiumsOf = (id: string) =>
     snapshot.driverStandings.find((s) => s.driver.id === id)?.podiums;

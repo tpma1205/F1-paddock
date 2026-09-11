@@ -163,6 +163,30 @@ describe('buildViewModel', () => {
     });
   });
 
+  describe('賽程表', () => {
+    const { weekends } = at('2026-09-10T12:00:00Z');
+
+    it('本季全部 23 站依 Round 排序', () => {
+      expect(weekends.map((w) => w.round)).toEqual(Array.from({ length: 23 }, (_, i) => i + 1));
+    });
+
+    it('正賽狀態區分已完賽與未來', () => {
+      expect(weekends[12]?.raceStatus).toBe('finished');
+      expect(weekends[13]?.raceStatus).toBe('upcoming');
+    });
+
+    it('已完賽的站次帶前三名，未來的站次前三名為空', () => {
+      expect(weekends[12]?.podium.map((r) => r.driver.id)).toEqual(['antonelli', 'russell', 'max_verstappen']);
+      expect(weekends[13]?.podium).toEqual([]);
+      expect(weekends[13]?.results).toBeNull();
+    });
+
+    it('正賽進行中時狀態為 live', () => {
+      // 馬德里正賽 09-13 13:00Z 起 120 分鐘
+      expect(at('2026-09-13T14:00:00Z').weekends[13]?.raceStatus).toBe('live');
+    });
+  });
+
   describe('車隊', () => {
     const { teams } = at('2026-09-10T12:00:00Z');
 

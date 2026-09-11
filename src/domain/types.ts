@@ -62,6 +62,26 @@ export interface Circuit {
   long: number;
 }
 
+/** 單一場正賽中一位車手的 Result。 */
+export interface RaceResult {
+  /** 分類序號，退賽者亦有（依完成圈數排）。 */
+  position: number;
+  /** "1"…"22"，或 "R"（退賽）、"W"（退出）等。 */
+  positionText: string;
+  /** positionText 為數字 —— 有正式名次。 */
+  classified: boolean;
+  points: number;
+  /** Jolpica 的狀態字串："Finished"、"Lapped"、"Retired"、"Did not start"… */
+  status: string;
+  laps: number;
+  grid: number;
+  /** 冠軍為總時間，其餘為與冠軍的差距；未完賽者為 null。 */
+  time: string | null;
+  fastestLap: boolean;
+  driver: DriverRef;
+  team: TeamRef;
+}
+
 export interface RaceWeekend {
   round: number;
   /** 正式名稱（英文），例如 "Spanish Grand Prix"。中文譯名由對照表另行提供。 */
@@ -69,6 +89,8 @@ export interface RaceWeekend {
   circuit: Circuit;
   /** 依時間排序；Sprint Weekend 的組成由資料決定，不可假設固定五個場次。 */
   sessions: Session[];
+  /** 正賽 Result，依分類序號排序；尚未舉行或資料未提供時為 null。 */
+  results: RaceResult[] | null;
 }
 
 export interface DriverRef {
@@ -142,6 +164,11 @@ export interface WeekendView {
   name: string;
   circuit: Circuit;
   sessions: SessionView[];
+  /** 正賽的狀態 —— 賽程表用它區分已完賽／進行中／未來。 */
+  raceStatus: SessionStatus;
+  results: RaceResult[] | null;
+  /** 前三名（有正式名次者），供賽程表直接顯示。 */
+  podium: RaceResult[];
 }
 
 export interface NextSession {
@@ -192,6 +219,8 @@ export interface TeamView {
 export interface ViewModel {
   season: string;
   fetchedAt: string;
+  /** 本季全部 Race Weekend，依 Round 排序。 */
+  weekends: WeekendView[];
   /** 依名次排序。 */
   teams: TeamView[];
   /** 依名次排序。 */

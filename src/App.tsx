@@ -11,6 +11,8 @@ import { DriversPage } from './pages/DriversPage.tsx';
 import { DriverPage } from './pages/DriverPage.tsx';
 import { CircuitsPage } from './pages/CircuitsPage.tsx';
 import { CircuitPage } from './pages/CircuitPage.tsx';
+import { CalendarPage } from './pages/CalendarPage.tsx';
+import { RacePage } from './pages/RacePage.tsx';
 
 /**
  * 路由的 basename 取自 Vite 的 base（`/f1-paddock/`），不另外寫一份 ——
@@ -23,6 +25,8 @@ export const App = (): JSX.Element => {
   const timeZone = useMemo(resolveTimeZone, []);
   const viewModel = useMemo(() => buildViewModel(bundledSnapshot, now), [now]);
   const timeZoneLabel = formatTimeZoneLabel(now, timeZone);
+  const nextRound = viewModel.nextSession?.weekend.round ?? null;
+  const msUntilNext = viewModel.nextSession?.msUntilStart ?? 0;
 
   return (
     <BrowserRouter basename={BASENAME}>
@@ -36,6 +40,7 @@ export const App = (): JSX.Element => {
             <NavLink to="/" end>
               首頁
             </NavLink>
+            <NavLink to="/calendar">賽程</NavLink>
             <NavLink to="/teams">車隊</NavLink>
             <NavLink to="/drivers">車手</NavLink>
             <NavLink to="/circuits">賽道</NavLink>
@@ -73,6 +78,31 @@ export const App = (): JSX.Element => {
             <Route
               path="/circuits/:circuitId"
               element={<CircuitPage season={viewModel.season} circuits={viewModel.circuits} />}
+            />
+            <Route
+              path="/calendar"
+              element={
+                <CalendarPage
+                  season={viewModel.season}
+                  weekends={viewModel.weekends}
+                  nextRound={nextRound}
+                  nowMs={now.getTime()}
+                  timeZone={timeZone}
+                />
+              }
+            />
+            <Route
+              path="/races/:round"
+              element={
+                <RacePage
+                  season={viewModel.season}
+                  weekends={viewModel.weekends}
+                  nextRound={nextRound}
+                  msUntilNext={msUntilNext}
+                  timeZone={timeZone}
+                  timeZoneLabel={timeZoneLabel}
+                />
+              }
             />
           </Routes>
         </main>

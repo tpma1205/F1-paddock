@@ -115,8 +115,8 @@ body {
   transition: color 0.15s ease, background-color 0.15s ease;
 }
 
-/* 四個連結在窄螢幕會溢出 —— 收緊間距與字距，而非換行 */
-@media (max-width: 30rem) {
+/* 五個連結在窄螢幕會溢出 —— 收緊間距與字距，而非換行 */
+@media (max-width: 34rem) {
   .topbar {
     gap: 0.75rem;
     padding-block: 1.1rem;
@@ -132,8 +132,15 @@ body {
   }
 
   .nav a {
-    padding: 0.35rem 0.55rem;
+    padding: 0.35rem 0.5rem;
     font-size: 0.8125rem;
+  }
+}
+
+/* 最窄的手機：品牌只留紅色記號，把空間讓給五個連結 */
+@media (max-width: 24rem) {
+  .brand__name {
+    display: none;
   }
 }
 
@@ -440,6 +447,8 @@ body {
   font-weight: 500;
   color: var(--text-dim);
   letter-spacing: 0.02em;
+  /* 中文沒有詞界，瀏覽器會把「蒙扎賽道」從任何字之間拆開；專有名詞只准整個換行 */
+  word-break: keep-all;
 }
 
 .bilingual--hero .bilingual__localised {
@@ -1366,5 +1375,377 @@ body {
   font: inherit;
   font-size: 0.8125rem;
   cursor: pointer;
+}
+
+/* ---------------------------------------------------------------- 賽程表 */
+
+.calendar {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.calendar__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3rem 5.5rem 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 1.25rem 0.85rem 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid transparent;
+  border-radius: var(--radius);
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.calendar__row:hover {
+  transform: translateY(-2px);
+  border-color: var(--text-faint);
+}
+
+/* 已完賽 —— 變暗但可讀，與場次面板同一套語言 */
+.calendar__row--finished {
+  color: var(--text-dim);
+}
+
+.calendar__row--finished .calendar__round,
+.calendar__row--finished .bilingual__canonical {
+  color: var(--text-dim);
+}
+
+/* 下一站 —— 浮起 + 骨幹紅左條，與場次面板的 Next Session 一致 */
+.calendar__row--next,
+.calendar__row--live {
+  background: var(--raised);
+  border-left-color: var(--f1-red);
+}
+
+.calendar__round {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.0625rem;
+  letter-spacing: 0.04em;
+}
+
+.calendar__row--next .calendar__round,
+.calendar__row--live .calendar__round {
+  color: var(--f1-red-bright);
+}
+
+.calendar__date {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.calendar__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.calendar__identity .flag {
+  width: 32px;
+  height: 24px;
+}
+
+.calendar__names {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar__names .bilingual__canonical {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.calendar__circuit {
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.calendar__status {
+  justify-self: end;
+  text-align: right;
+  font-size: 0.8125rem;
+  color: var(--text-faint);
+}
+
+.calendar__countdown strong {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.calendar__row--next .calendar__countdown {
+  color: var(--text-dim);
+}
+
+/* 前三名 —— 橫向三個小項 */
+.podium {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  gap: 1rem;
+}
+
+.podium__entry {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.podium__position {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.podium__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.podium__name {
+  color: var(--text-dim);
+}
+
+/* ---------------------------------------------------------------- 賽果 */
+
+.race-detail {
+  padding: clamp(1.5rem, 5vw, 3rem) 0;
+}
+
+.race-detail__place {
+  margin: 0.75rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-dim);
+}
+
+.race-detail__place a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.race-detail__place a:hover {
+  color: var(--text);
+}
+
+.race-detail .panel {
+  margin-top: 1.5rem;
+}
+
+.results {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.result {
+  --team-colour: var(--text-dim);
+  --team-text: var(--text-dim);
+
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.result__details summary {
+  list-style: none;
+  cursor: default;
+}
+
+.result__details summary::-webkit-details-marker {
+  display: none;
+}
+
+.result__row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.5rem auto 1fr 4.5rem 3.5rem minmax(7rem, auto) 4rem;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.6rem 1.25rem 0.6rem 1.5rem;
+}
+
+.result__row::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--team-colour);
+}
+
+.result__position {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.result--unclassified .result__position {
+  color: var(--text-faint);
+}
+
+.result .driver-photo--card {
+  width: 3rem;
+  height: 3rem;
+}
+
+.result__driver {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.result__driver .bilingual__canonical {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+}
+
+.result__team {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
+.result__cell {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.result__label {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.625rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.result--unclassified .result__cell--outcome {
+  color: var(--text-dim);
+}
+
+.result__fastest {
+  display: inline-block;
+  margin-top: 0.15rem;
+  width: fit-content;
+  padding: 0 0.35rem;
+  border-radius: 4px;
+  background: #b64bd6;
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.result__points {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.result__points .stat__value {
+  color: var(--team-text);
+}
+
+/* 桌機：欄位全部攤平，展開機制停用 */
+.result__more {
+  display: none;
+}
+
+@media (max-width: 44rem) {
+  .result__row {
+    grid-template-columns: 2rem auto 1fr 3.5rem;
+    padding-right: 1rem;
+  }
+
+  .result__cell--secondary {
+    display: none;
+  }
+
+  .result__details summary {
+    cursor: pointer;
+  }
+
+  .result__details[open] .result__more {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.75rem 1.25rem 0.9rem 1.5rem;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .result__more dt {
+    font-size: 0.625rem;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+  }
+
+  .result__more dd {
+    margin: 0.15rem 0 0;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+
+  .calendar__row {
+    grid-template-columns: 2.5rem 1fr;
+    gap: 0.35rem 0.75rem;
+    padding: 0.85rem 1rem 0.85rem 1.25rem;
+  }
+
+  .calendar__date {
+    grid-column: 2;
+    font-size: 0.8125rem;
+  }
+
+  .calendar__identity {
+    grid-column: 1 / -1;
+  }
+
+  .calendar__status {
+    grid-column: 1 / -1;
+    justify-self: start;
+    text-align: left;
+  }
+
+  .podium {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.9rem;
+  }
 }
 

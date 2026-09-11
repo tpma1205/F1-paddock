@@ -75,6 +75,15 @@ export const formatTimeZoneLabel = (date: Date, timeZone: string): string => {
 export const formatSessionDay = (iso: string, timeZone: string): string =>
   new Intl.DateTimeFormat('zh-TW', { timeZone, weekday: 'short' }).format(new Date(iso));
 
+/** 正賽日期，例如「3/8 週日」—— 賽程表一列一站，要短。 */
+export const formatRaceDate = (iso: string, timeZone: string): string =>
+  new Intl.DateTimeFormat('zh-TW', {
+    timeZone,
+    month: 'numeric',
+    day: 'numeric',
+    weekday: 'short',
+  }).format(new Date(iso));
+
 /** 場次的時刻，例如「19:30」。 */
 export const formatSessionClock = (iso: string, timeZone: string): string =>
   new Intl.DateTimeFormat('zh-TW', {

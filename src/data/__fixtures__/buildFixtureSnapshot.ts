@@ -4,9 +4,9 @@ import races from './jolpica-races.json' with { type: 'json' };
 import driverStandings from './jolpica-driver-standings.json' with { type: 'json' };
 import teamStandings from './jolpica-constructor-standings.json' with { type: 'json' };
 import openF1Drivers from './openf1-drivers.json' with { type: 'json' };
-import resultsP1 from './jolpica-results-p1.json' with { type: 'json' };
-import resultsP2 from './jolpica-results-p2.json' with { type: 'json' };
-import resultsP3 from './jolpica-results-p3.json' with { type: 'json' };
+import resultsPage1 from './jolpica-results-page1.json' with { type: 'json' };
+import resultsPage2 from './jolpica-results-page2.json' with { type: 'json' };
+import resultsPage3 from './jolpica-results-page3.json' with { type: 'json' };
 
 /**
  * 由錄製的真實 Jolpica 回應建出 Snapshot。
@@ -20,6 +20,6 @@ export const buildFixtureSnapshot = (): Snapshot =>
     driverStandings,
     teamStandings,
     openF1Drivers,
-    podiumResults: [resultsP1, resultsP2, resultsP3],
+    results: [resultsPage1, resultsPage2, resultsPage3],
     fetchedAt: '2026-09-10T00:00:00.000Z',
   });

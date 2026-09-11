@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatCompactCountdown,
   formatFetchedAt,
+  formatRaceDate,
   formatSessionClock,
   formatSessionDay,
   formatTimeZoneLabel,
@@ -47,6 +48,14 @@ describe('時區呈現', () => {
     expect(formatSessionDay(madridFp1, 'Asia/Taipei')).toBe('週五');
     expect(formatSessionClock(madridFp1, 'Asia/Taipei')).toBe('19:30');
     expect(formatSessionClock(madridFp1, 'Europe/London')).toBe('12:30');
+  });
+
+  it('正賽日期簡短且含星期', () => {
+    // 09-13 13:00Z 在台北是 9/13 週日
+    // 標點由 ICU 決定（目前是全形括號），不綁死
+    const label = formatRaceDate('2026-09-13T13:00:00.000Z', 'Asia/Taipei');
+    expect(label).toContain('9/13');
+    expect(label).toContain('週日');
   });
 
   it('跨日時星期跟著使用者時區走，而非 UTC 的日期', () => {

@@ -35,12 +35,21 @@ const toSessionView = (session: Session, nowMs: number): SessionView => ({
   status: statusOf(session, nowMs),
 });
 
-const toWeekendView = (weekend: RaceWeekend, nowMs: number): WeekendView => ({
-  round: weekend.round,
-  name: weekend.name,
-  circuit: weekend.circuit,
-  sessions: weekend.sessions.map((session) => toSessionView(session, nowMs)),
-});
+const toWeekendView = (weekend: RaceWeekend, nowMs: number): WeekendView => {
+  const sessions = weekend.sessions.map((session) => toSessionView(session, nowMs));
+  // 每個 Race Weekend 必有正賽（見 jolpica.ts 的 toSessions）；找不到時視為未開始。
+  const race = sessions.find((session) => session.kind === 'race');
+
+  return {
+    round: weekend.round,
+    name: weekend.name,
+    circuit: weekend.circuit,
+    sessions,
+    raceStatus: race?.status ?? 'upcoming',
+    results: weekend.results,
+    podium: (weekend.results ?? []).filter((r) => r.classified && r.position <= 3).slice(0, 3),
+  };
+};
 
 /**
  * 把車手歸到其**當前**車隊底下。
@@ -114,45 +123,37 @@ const buildCircuits = (snapshot: Snapshot): CircuitView[] => {
  */
 export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   const nowMs = now.getTime();
-  const teams = buildTeams(snapshot);
-  const drivers = buildDrivers(snapshot);
-  const circuits = buildCircuits(snapshot);
+  const weekends = snapshot.weekends.map((weekend) => toWeekendView(weekend, nowMs));
+
+  const base = {
+    season: snapshot.season,
+    fetchedAt: snapshot.fetchedAt,
+    weekends,
+    teams: buildTeams(snapshot),
+    drivers: buildDrivers(snapshot),
+    circuits: buildCircuits(snapshot),
+  };
 
   // 尚未結束的最早一個場次即為 Next Session。
   // 用「尚未結束」而非「尚未開始」，是為了讓正在進行中的場次仍是聚焦對象，
   // 畫面才能顯示「進行中」而不是跳過它去倒數下一節。
-  for (const weekend of snapshot.weekends) {
-    const weekendView = toWeekendView(weekend, nowMs);
-    const sessionView = weekendView.sessions.find((session) => session.status !== 'finished');
-
+  for (const weekend of weekends) {
+    const session = weekend.sessions.find((candidate) => candidate.status !== 'finished');
     // 整個週末都已結束 —— 往下一個 Round 找。
-    if (!sessionView) continue;
+    if (!session) continue;
 
     return {
-      season: snapshot.season,
-      fetchedAt: snapshot.fetchedAt,
-      teams,
-      drivers,
-      circuits,
-      focusWeekend: weekendView,
+      ...base,
+      focusWeekend: weekend,
       nextSession: {
-        weekend: weekendView,
-        session: sessionView,
-        msUntilStart: Math.max(0, Date.parse(sessionView.startsAt) - nowMs),
+        weekend,
+        session,
+        msUntilStart: Math.max(0, Date.parse(session.startsAt) - nowMs),
       },
       isOffSeason: false,
     };
   }
 
   // 本季所有場次都已結束 —— 進入 Off-season。
-  return {
-    season: snapshot.season,
-    fetchedAt: snapshot.fetchedAt,
-    teams,
-    drivers,
-    circuits,
-    focusWeekend: null,
-    nextSession: null,
-    isOffSeason: true,
-  };
+  return { ...base, focusWeekend: null, nextSession: null, isOffSeason: true };
 };

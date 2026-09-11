@@ -76,12 +76,15 @@ const main = async (): Promise<void> => {
     );
     const openF1Drivers = await getOpenF1Drivers();
 
-    // 前三名各一份 —— 3 次請求即得全季頒獎台，不需逐站抓取。
-    const podiumResults: RawResultsResponse[] = [];
-    for (const position of [1, 2, 3]) {
-      podiumResults.push(
-        await getJson<RawResultsResponse>(`${BASE}/results/${position}/?format=json&limit=30`),
+    // 整季賽果分頁抓取：Jolpica 把 limit 上限鎖在 100，一站 22 筆，
+    // 13 站即 3 頁 —— 仍遠好過逐站 23 次。同一站可能跨頁，由 normalise 依 round 合併。
+    const results: RawResultsResponse[] = [];
+    for (let offset = 0; ; offset += 100) {
+      const page = await getJson<RawResultsResponse>(
+        `${BASE}/results/?format=json&limit=100&offset=${offset}`,
       );
+      results.push(page);
+      if (offset + 100 >= Number(page.MRData.total)) break;
     }
 
     const snapshot = normaliseSeason({
@@ -89,15 +92,16 @@ const main = async (): Promise<void> => {
       driverStandings,
       teamStandings,
       openF1Drivers,
-      podiumResults,
+      results,
       fetchedAt: new Date().toISOString(),
     });
 
     mkdirSync(OUTPUT_DIR, { recursive: true });
     writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
     const coloured = snapshot.teamStandings.filter((s) => s.team.colour !== null).length;
+    const withResults = snapshot.weekends.filter((w) => w.results !== null).length;
     console.log(
-      `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站、${coloured}/${snapshot.teamStandings.length} 隊有代表色`,
+      `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站、${withResults} 站有賽果、${coloured}/${snapshot.teamStandings.length} 隊有代表色`,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
