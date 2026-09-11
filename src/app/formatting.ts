@@ -16,6 +16,17 @@ export const SESSION_LABEL: Record<SessionKind, string> = {
   race: '正賽',
 };
 
+/** 場次面板上使用的簡稱 —— 欄寬有限，用全名會擠掉時間。 */
+export const SESSION_SHORT_LABEL: Record<SessionKind, string> = {
+  fp1: 'FP1',
+  fp2: 'FP2',
+  fp3: 'FP3',
+  sprintQualifying: '衝刺排位',
+  sprint: '衝刺賽',
+  qualifying: '排位賽',
+  race: '正賽',
+};
+
 export interface Countdown {
   days: number;
   hours: number;
@@ -58,6 +69,34 @@ export const formatTimeZoneLabel = (date: Date, timeZone: string): string => {
   const long = timeZonePart(date, timeZone, 'long');
   const offset = timeZonePart(date, timeZone, 'shortOffset');
   return [long, offset].filter(Boolean).join(' ') || timeZone;
+};
+
+/** 場次的星期，例如「週五」。 */
+export const formatSessionDay = (iso: string, timeZone: string): string =>
+  new Intl.DateTimeFormat('zh-TW', { timeZone, weekday: 'short' }).format(new Date(iso));
+
+/** 場次的時刻，例如「19:30」。 */
+export const formatSessionClock = (iso: string, timeZone: string): string =>
+  new Intl.DateTimeFormat('zh-TW', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(new Date(iso));
+
+/**
+ * 場次列上的精簡倒數，例如「20 時 26 分」。
+ *
+ * **刻意不顯示秒數** —— 列表上同時有五個場次，跳動的秒數會讓整個面板
+ * 不斷閃爍。完整到秒的倒數只出現在 Hero 的單一焦點上。
+ */
+export const formatCompactCountdown = (ms: number): string => {
+  const { days, hours, minutes } = toCountdown(ms);
+
+  if (days > 0) return `${days} 天 ${hours} 時`;
+  if (hours > 0) return `${hours} 時 ${minutes} 分`;
+  if (minutes > 0) return `${minutes} 分`;
+  return '即將開始';
 };
 
 /** 資料新鮮度標示，例如「2026/09/10 22:52」。 */

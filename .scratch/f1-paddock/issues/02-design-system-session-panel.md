@@ -8,14 +8,14 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 黑色採分層深灰（底／卡片／浮起三層），不使用純黑
-- [ ] F1 紅僅用於網站骨幹（導覽、倒數、狀態標籤、進度條），不外溢到內容
-- [ ] 字體為 Titillium Web（英數）+ Noto Sans TC（中文），具備可用的 fallback stack
-- [ ] 場次面板顯示該週末全部 Session，含國旗、Race Weekend 名稱與 Round 編號
-- [ ] Sprint Weekend 顯示衝刺排位與衝刺賽、不出現 FP2／FP3 的空欄位
-- [ ] 已結束的 Session 視覺變暗，Next Session 高亮且內嵌倒數
-- [ ] Framer Motion 進場動畫就位，且 `prefers-reduced-motion` 開啟時自動降為淡入
-- [ ] 所有動畫僅使用 transform／opacity
-- [ ] 窄螢幕下面板由表格轉為堆疊卡片，倒數獨立成行
+- [x] 黑色採分層深灰（底／卡片／浮起三層），不使用純黑
+- [x] F1 紅僅用於網站骨幹（導覽、倒數、狀態標籤、進度條），不外溢到內容
+- [x] 字體為 Titillium Web（英數）+ Noto Sans TC（中文），具備可用的 fallback stack
+- [x] 場次面板顯示該週末全部 Session，含國旗、Race Weekend 名稱與 Round 編號
+- [x] Sprint Weekend 顯示衝刺排位與衝刺賽、不出現 FP2／FP3 的空欄位
+- [x] 已結束的 Session 視覺變暗，Next Session 高亮且內嵌倒數
+- [x] Framer Motion 進場動畫就位，且 `prefers-reduced-motion` 開啟時自動降為淡入
+- [x] 所有動畫僅使用 transform／opacity
+- [x] 窄螢幕下面板由表格轉為堆疊卡片，倒數獨立成行
