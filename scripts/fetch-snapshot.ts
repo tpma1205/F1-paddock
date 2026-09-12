@@ -13,8 +13,10 @@ import { fileURLToPath } from 'node:url';
 import {
   normaliseSeason,
   type RawDriverStandingsResponse,
+  type RawQualifyingResponse,
   type RawRacesResponse,
   type RawResultsResponse,
+  type RawSprintResponse,
   type RawTeamStandingsResponse,
 } from '../src/data/jolpica.ts';
 import type { RawOpenF1Driver } from '../src/data/openf1.ts';
@@ -49,6 +51,19 @@ const getJson = async <T>(url: string): Promise<T> => {
   const response = await fetch(url, { headers: { accept: 'application/json' } });
   if (!response.ok) throw new Error(`${url} -> HTTP ${response.status}`);
   return (await response.json()) as T;
+};
+
+/** 依 Jolpica 的 limit=100 分頁規則抓完整季。 */
+const getAllPages = async <T extends { MRData: { total: string } }>(
+  resource: string,
+): Promise<T[]> => {
+  const pages: T[] = [];
+  for (let offset = 0; ; offset += 100) {
+    const page = await getJson<T>(`${BASE}/${resource}/?format=json&limit=100&offset=${offset}`);
+    pages.push(page);
+    if (offset + 100 >= Number(page.MRData.total)) break;
+  }
+  return pages;
 };
 
 /** 目前磁碟上最新的一份快照；沒有則為 null。 */
@@ -119,16 +134,13 @@ const main = async (): Promise<void> => {
     );
     const openF1Drivers = await getOpenF1Drivers(loadExistingSnapshot());
 
-    // 整季賽果分頁抓取：Jolpica 把 limit 上限鎖在 100，一站 22 筆，
-    // 13 站即 3 頁 —— 仍遠好過逐站 23 次。同一站可能跨頁，由 normalise 依 round 合併。
-    const results: RawResultsResponse[] = [];
-    for (let offset = 0; ; offset += 100) {
-      const page = await getJson<RawResultsResponse>(
-        `${BASE}/results/?format=json&limit=100&offset=${offset}`,
-      );
-      results.push(page);
-      if (offset + 100 >= Number(page.MRData.total)) break;
-    }
+    // 整季賽果／衝刺賽／排位賽分頁抓取：Jolpica 把 limit 上限鎖在 100，一站
+    // 22 筆，13 站約 3 頁 —— 仍遠好過逐站抓。同一站可能跨頁，由 normalise 依
+    // round 合併。積分走勢由正賽 + 衝刺賽積分推導（實測與積分榜 23/23 吻合），
+    // 不需再抓逐站積分榜。
+    const results = await getAllPages<RawResultsResponse>('results');
+    const sprints = await getAllPages<RawSprintResponse>('sprint');
+    const qualifying = await getAllPages<RawQualifyingResponse>('qualifying');
 
     const snapshot = normaliseSeason({
       races,
@@ -136,6 +148,8 @@ const main = async (): Promise<void> => {
       teamStandings,
       openF1Drivers,
       results,
+      sprints,
+      qualifying,
       fetchedAt: new Date().toISOString(),
     });
 

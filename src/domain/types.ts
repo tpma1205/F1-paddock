@@ -87,6 +87,16 @@ export interface RaceResult {
   teamId: string;
 }
 
+/** 排位賽單一車手的成績。 */
+export interface QualifyingResult {
+  position: number;
+  driverId: string;
+  teamId: string;
+  q1: string | null;
+  q2: string | null;
+  q3: string | null;
+}
+
 export interface RaceWeekend {
   round: number;
   /** 正式名稱（英文），例如 "Spanish Grand Prix"。中文譯名由對照表另行提供。 */
@@ -96,6 +106,10 @@ export interface RaceWeekend {
   sessions: Session[];
   /** 正賽 Result，依分類序號排序；尚未舉行或資料未提供時為 null。 */
   results: RaceResult[] | null;
+  /** 衝刺賽 Result，形狀與正賽相同；非 Sprint Weekend 或尚未舉行時為 null。 */
+  sprintResults: RaceResult[] | null;
+  /** 排位賽成績，依名次排序；尚未舉行時為 null。 */
+  qualifying: QualifyingResult[] | null;
 }
 
 export interface DriverRef {
@@ -227,11 +241,68 @@ export interface TeamView {
   drivers: DriverSummary[];
 }
 
+/** 一位車手在積分走勢圖上的一條線。 */
+export interface ProgressionSeries {
+  driver: DriverRef;
+  team: TeamRef | null;
+  /** 與 PointsProgression.rounds 對齊；正賽 + 衝刺賽累積。 */
+  cumulative: number[];
+  /** 同隊第幾位（0 或 1）—— 同隊顏色相同，以此區分實線／虛線。 */
+  teammateIndex: number;
+}
+
+export interface PointsProgression {
+  /** 已完成的 Round，依序。 */
+  rounds: number[];
+  /** 依最終積分排序。 */
+  series: ProgressionSeries[];
+}
+
+/** 隊友對決中一方的戰績。 */
+export interface BattleSide {
+  driver: DriverRef;
+  points: number;
+  wins: number;
+  podiums: number | null;
+  /** 兩人都參與的排位賽中，排在隊友前面的次數。 */
+  qualifyingAhead: number;
+  /** 兩人都完賽（有正式名次）的正賽中，排在隊友前面的次數。 */
+  raceAhead: number;
+}
+
+export interface TeammateBattle {
+  teamId: string;
+  a: BattleSide;
+  b: BattleSide;
+  /** 兩人都參與的排位賽場數。 */
+  qualifyingContests: number;
+  /** 兩人都有正式名次的正賽場數。 */
+  raceContests: number;
+}
+
+export interface Highlight {
+  driver: DriverRef;
+  team: TeamRef | null;
+  count: number;
+}
+
+/** 本季數據亮點；資料不足以判斷時為 null。 */
+export interface SeasonHighlights {
+  mostWins: Highlight | null;
+  mostPoles: Highlight | null;
+  mostPodiums: Highlight | null;
+  mostRetirements: Highlight | null;
+}
+
 export interface ViewModel {
   season: string;
   fetchedAt: string;
   /** 本季全部 Race Weekend，依 Round 排序。 */
   weekends: WeekendView[];
+  progression: PointsProgression;
+  /** 每支車隊一筆；只有一位車手的車隊不列。 */
+  battles: TeammateBattle[];
+  highlights: SeasonHighlights;
   /** 依名次排序。 */
   teams: TeamView[];
   /** 依名次排序。 */

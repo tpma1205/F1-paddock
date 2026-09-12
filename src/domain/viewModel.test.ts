@@ -261,6 +261,113 @@ describe('buildViewModel', () => {
     });
   });
 
+  describe('積分走勢 —— 由正賽 + 衝刺賽推導', () => {
+    const { progression, drivers } = at('2026-09-10T12:00:00Z');
+
+    it('只涵蓋有賽果的 Round', () => {
+      expect(progression.rounds).toEqual(Array.from({ length: 13 }, (_, i) => i + 1));
+    });
+
+    it('每位車手每一輪都有一個點，最後一點等於積分榜積分（含衝刺賽）', () => {
+      for (const series of progression.series) {
+        expect(series.cumulative).toHaveLength(13);
+        const standing = drivers.find((d) => d.driver.id === series.driver.id);
+        expect(series.cumulative.at(-1), series.driver.id).toBe(standing?.points);
+      }
+    });
+
+    it('累積值單調不減', () => {
+      for (const series of progression.series) {
+        for (let i = 1; i < series.cumulative.length; i += 1) {
+          expect(series.cumulative[i]).toBeGreaterThanOrEqual(series.cumulative[i - 1]!);
+        }
+      }
+    });
+
+    it('同隊兩位車手以 teammateIndex 0／1 區分，供實線／虛線編碼', () => {
+      const mercedes = progression.series.filter((s) => s.team?.id === 'mercedes');
+      expect(mercedes.map((s) => s.teammateIndex).sort()).toEqual([0, 1]);
+      expect(mercedes.find((s) => s.teammateIndex === 0)?.driver.id).toBe('antonelli');
+    });
+
+    it('賽季尚未開始時 rounds 為空、每條線為空陣列，不拋錯', () => {
+      const fresh = structuredClone(snapshot);
+      for (const w of fresh.weekends) {
+        w.results = null;
+        w.sprintResults = null;
+        w.qualifying = null;
+      }
+      const vm = buildViewModel(fresh, new Date('2026-01-01T00:00:00Z'));
+      expect(vm.progression.rounds).toEqual([]);
+      expect(vm.progression.series.every((s) => s.cumulative.length === 0)).toBe(true);
+    });
+  });
+
+  describe('隊友對決', () => {
+    const { battles } = at('2026-09-10T12:00:00Z');
+    const mercedes = battles.find((b) => b.teamId === 'mercedes');
+
+    it('每支有兩位車手的車隊一筆', () => {
+      expect(battles).toHaveLength(11);
+    });
+
+    it('兩方的積分／勝場／頒獎台來自積分榜', () => {
+      expect(mercedes?.a.driver.id).toBe('antonelli');
+      expect(mercedes?.a).toMatchObject({ points: 267, wins: 7, podiums: 11 });
+      expect(mercedes?.b.driver.id).toBe('russell');
+    });
+
+    it('排位與正賽對戰的勝場加總等於對戰場數 —— 每場必有一方領先', () => {
+      for (const battle of battles) {
+        expect(battle.a.qualifyingAhead + battle.b.qualifyingAhead).toBe(battle.qualifyingContests);
+        expect(battle.a.raceAhead + battle.b.raceAhead).toBe(battle.raceContests);
+      }
+    });
+
+    it('只算兩人都參與的場次，對戰場數不超過已完成站數', () => {
+      for (const battle of battles) {
+        expect(battle.qualifyingContests).toBeLessThanOrEqual(13);
+        expect(battle.raceContests).toBeLessThanOrEqual(13);
+      }
+    });
+  });
+
+  describe('數據亮點', () => {
+    const { highlights } = at('2026-09-10T12:00:00Z');
+
+    it('最多勝與最多頒獎台都是 Antonelli', () => {
+      expect(highlights.mostWins).toMatchObject({ count: 7 });
+      expect(highlights.mostWins?.driver.id).toBe('antonelli');
+      expect(highlights.mostPodiums?.driver.id).toBe('antonelli');
+      expect(highlights.mostPodiums?.count).toBe(11);
+    });
+
+    it('最多桿位由排位賽第一名統計', () => {
+      expect(highlights.mostPoles).not.toBeNull();
+      expect(highlights.mostPoles!.count).toBeGreaterThan(0);
+    });
+
+    it('退賽次數由無正式名次的賽果統計', () => {
+      expect(highlights.mostRetirements).not.toBeNull();
+      expect(highlights.mostRetirements!.count).toBeGreaterThan(0);
+    });
+
+    it('賽季尚未開始時每一項都是 null，而非 0 次的贏家', () => {
+      const fresh = structuredClone(snapshot);
+      for (const w of fresh.weekends) {
+        w.results = null;
+        w.sprintResults = null;
+        w.qualifying = null;
+      }
+      for (const s of fresh.driverStandings) {
+        s.wins = 0;
+        s.podiums = null;
+      }
+      const vm = buildViewModel(fresh, new Date('2026-01-01T00:00:00Z'));
+      expect(vm.highlights).toEqual({ mostWins: null, mostPoles: null, mostPodiums: null, mostRetirements: null });
+    });
+  });
+
   it('保留球季與抓取時間供畫面標示資料新鮮度', () => {
     const vm = at('2026-09-10T12:00:00Z');
 

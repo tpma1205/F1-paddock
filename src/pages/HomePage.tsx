@@ -5,6 +5,7 @@ import { useEntrance } from '../app/motion.ts';
 import { PARALLAX_QUERY, useMediaQuery } from '../app/useMediaQuery.ts';
 import { SessionPanel } from '../app/SessionPanel.tsx';
 import { StandingsSection } from '../app/StandingsSection.tsx';
+import { InsightsSection } from '../app/InsightsSection.tsx';
 import { PreviewStrip } from '../app/PreviewStrip.tsx';
 import { TeamCard } from '../app/cards/TeamCard.tsx';
 import { DriverCard } from '../app/cards/DriverCard.tsx';
@@ -117,6 +118,8 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
       )}
 
       <StandingsSection season={season} completedRound={completedRound} drivers={drivers} teams={teams} />
+
+      <InsightsSection season={season} progression={viewModel.progression} highlights={viewModel.highlights} />
 
       <PreviewStrip title="車隊" titleEn="Teams" href="/teams" accent={leaderColour ?? undefined}>
         {teams.slice(0, PREVIEW_COUNT).map((team) => (

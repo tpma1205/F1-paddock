@@ -3,6 +3,7 @@ import {
   sessionOrder,
   type DriverRef,
   type DriverStanding,
+  type QualifyingResult,
   type RaceResult,
   type RaceWeekend,
   type Session,
@@ -97,15 +98,30 @@ interface RawResult {
 }
 
 /**
- * `/results/` 的回應（整季，分頁）。Jolpica 把 limit 上限鎖在 100，
- * 同一站可能跨頁，合併時必須依 round 分組。
+ * `/results/`、`/sprint/`、`/qualifying/` 的回應（整季，分頁）。Jolpica 把
+ * limit 上限鎖在 100，同一站可能跨頁，合併時必須依 round 分組。
+ * 三個端點的差別只在 Races[] 內裝結果的欄位名。
  */
-export interface RawResultsResponse {
+interface RawPagedResponse<Key extends string, Row> {
   MRData: {
     total: string;
-    RaceTable: { season: string; Races: Array<RawRace & { Results: RawResult[] }> };
+    RaceTable: { season: string; Races: Array<RawRace & Record<Key, Row[]>> };
   };
 }
+
+export type RawResultsResponse = RawPagedResponse<'Results', RawResult>;
+export type RawSprintResponse = RawPagedResponse<'SprintResults', RawResult>;
+
+interface RawQualifyingResult {
+  position: string;
+  Driver: RawDriver;
+  Constructor: RawConstructor;
+  Q1?: string;
+  Q2?: string;
+  Q3?: string;
+}
+
+export type RawQualifyingResponse = RawPagedResponse<'QualifyingResults', RawQualifyingResult>;
 
 export interface RawDriverStandingsResponse {
   MRData: {
@@ -244,29 +260,48 @@ const toRaceResult = (raw: RawResult): RaceResult => ({
   teamId: raw.Constructor.constructorId,
 });
 
+const toQualifyingResult = (raw: RawQualifyingResult): QualifyingResult => ({
+  position: Number(raw.position),
+  driverId: raw.Driver.driverId,
+  teamId: raw.Constructor.constructorId,
+  q1: raw.Q1 ?? null,
+  q2: raw.Q2 ?? null,
+  q3: raw.Q3 ?? null,
+});
+
 /**
- * 把分頁的賽果回應依 round 合併。Jolpica 每頁最多 100 筆，一站 22 筆，
+ * 把分頁的回應依 round 合併。Jolpica 每頁最多 100 筆，一站 22 筆，
  * 所以同一站常被切在兩頁 —— 不合併的話那一站會少掉一半的車手。
+ * 三個端點（正賽／衝刺賽／排位賽）共用這條，只差結果欄位名與轉換函式。
  */
-const groupResultsByRound = (
-  pages: ReadonlyArray<RawResultsResponse>,
-): ReadonlyMap<number, RaceResult[]> => {
-  const byRound = new Map<number, RaceResult[]>();
+const groupByRound = <Key extends string, Row, Out extends { position: number }>(
+  pages: ReadonlyArray<RawPagedResponse<Key, Row>> | undefined,
+  key: Key,
+  toRow: (raw: Row) => Out,
+): ReadonlyMap<number, Out[]> | null => {
+  if (!pages || pages.length === 0) return null;
+  const byRound = new Map<number, Out[]>();
 
   for (const page of pages) {
     for (const race of page.MRData.RaceTable.Races) {
       const round = Number(race.round);
       const existing = byRound.get(round) ?? [];
-      byRound.set(round, [...existing, ...race.Results.map(toRaceResult)]);
+      byRound.set(round, [...existing, ...race[key].map(toRow)]);
     }
   }
 
-  for (const results of byRound.values()) results.sort((a, b) => a.position - b.position);
+  for (const rows of byRound.values()) rows.sort((a, b) => a.position - b.position);
   return byRound;
 };
 
+interface PerRound {
+  results: ReadonlyMap<number, RaceResult[]> | null;
+  sprints: ReadonlyMap<number, RaceResult[]> | null;
+  qualifying: ReadonlyMap<number, QualifyingResult[]> | null;
+}
+
 const toWeekend =
-  (resultsByRound: ReadonlyMap<number, RaceResult[]> | null) =>
+  (perRound: PerRound) =>
   (race: RawRace): RaceWeekend => {
     const round = Number(race.round);
     return {
@@ -281,7 +316,9 @@ const toWeekend =
         long: Number(race.Circuit.Location.long),
       },
       sessions: toSessions(race),
-      results: resultsByRound?.get(round) ?? null,
+      results: perRound.results?.get(round) ?? null,
+      sprintResults: perRound.sprints?.get(round) ?? null,
+      qualifying: perRound.qualifying?.get(round) ?? null,
     };
   };
 
@@ -352,6 +389,10 @@ export interface NormaliseInput {
   openF1Drivers?: ReadonlyArray<RawOpenF1Driver>;
   /** 整季賽果的分頁回應；可省略，屆時 results 與頒獎台次數皆為 null。 */
   results?: ReadonlyArray<RawResultsResponse>;
+  /** 整季衝刺賽的分頁回應；可省略。 */
+  sprints?: ReadonlyArray<RawSprintResponse>;
+  /** 整季排位賽的分頁回應；可省略。 */
+  qualifying?: ReadonlyArray<RawQualifyingResponse>;
   fetchedAt: string;
 }
 
@@ -367,6 +408,8 @@ export const normaliseSeason = ({
   teamStandings,
   openF1Drivers = [],
   results,
+  sprints,
+  qualifying,
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
@@ -375,15 +418,19 @@ export const normaliseSeason = ({
 
   const openF1 = indexOpenF1Drivers(openF1Drivers);
   const colours = deriveTeamColours(rawDrivers, openF1);
-  const resultsByRound = results && results.length > 0 ? groupResultsByRound(results) : null;
-  const podiums = tallyPodiums(resultsByRound);
+  const perRound: PerRound = {
+    results: groupByRound(results, 'Results', toRaceResult),
+    sprints: groupByRound(sprints, 'SprintResults', toRaceResult),
+    qualifying: groupByRound(qualifying, 'QualifyingResults', toQualifyingResult),
+  };
+  const podiums = tallyPodiums(perRound.results);
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
   return {
     season: assertValidSeason(raceTable.season),
     completedRound: Number.isFinite(completedRound) && completedRound > 0 ? completedRound : null,
     fetchedAt,
-    weekends: raceTable.Races.map(toWeekend(resultsByRound)).sort((a, b) => a.round - b.round),
+    weekends: raceTable.Races.map(toWeekend(perRound)).sort((a, b) => a.round - b.round),
     driverStandings: rawDrivers
       .map(toDriverStanding(colours, openF1, podiums))
       .sort((a, b) => a.position - b.position),

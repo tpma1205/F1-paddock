@@ -69,7 +69,7 @@ export const App = (): JSX.Element => {
             />
             <Route
               path="/teams/:teamId"
-              element={<TeamPage season={viewModel.season} teams={viewModel.teams} />}
+              element={<TeamPage season={viewModel.season} teams={viewModel.teams} battles={viewModel.battles} />}
             />
             <Route
               path="/drivers"

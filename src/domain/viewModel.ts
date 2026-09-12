@@ -1,11 +1,16 @@
 import {
   SESSION_DURATION_MINUTES,
+  type BattleSide,
   type CircuitView,
   type DriverRef,
   type DriverSummary,
   type DriverView,
+  type Highlight,
+  type PointsProgression,
   type RaceWeekend,
   type ResultView,
+  type SeasonHighlights,
+  type TeammateBattle,
   type Session,
   type SessionStatus,
   type SessionView,
@@ -158,6 +163,140 @@ const buildCircuits = (snapshot: Snapshot): CircuitView[] => {
 };
 
 /**
+ * 積分走勢：每位車手在每個已完成 Round 後的累積積分。
+ *
+ * 由正賽 + 衝刺賽積分推導，而非另外抓逐站積分榜 —— 實測與官方積分榜
+ * 23/23 位車手完全吻合，且少 12 次請求。只計「有賽果」的 Round。
+ */
+const buildProgression = (snapshot: Snapshot): PointsProgression => {
+  const completed = snapshot.weekends.filter((w) => w.results !== null);
+  const rounds = completed.map((w) => w.round);
+
+  const running = new Map<string, number>();
+  const cumulativeById = new Map<string, number[]>();
+
+  for (const weekend of completed) {
+    const gained = new Map<string, number>();
+    for (const r of weekend.results ?? []) gained.set(r.driverId, (gained.get(r.driverId) ?? 0) + r.points);
+    for (const r of weekend.sprintResults ?? []) gained.set(r.driverId, (gained.get(r.driverId) ?? 0) + r.points);
+
+    // 每位已知車手都要在每一輪有一個點 —— 沒出賽的那一輪維持原值，線才不會斷。
+    for (const standing of snapshot.driverStandings) {
+      const id = standing.driver.id;
+      const next = (running.get(id) ?? 0) + (gained.get(id) ?? 0);
+      running.set(id, next);
+      cumulativeById.set(id, [...(cumulativeById.get(id) ?? []), next]);
+    }
+  }
+
+  // 同隊第幾位：積分榜順序在前者為 0（實線），其後為 1（虛線）。
+  const seenPerTeam = new Map<string, number>();
+
+  const series = snapshot.driverStandings.map((standing) => {
+    const team = standing.teams.at(-1) ?? null;
+    const teamKey = team?.id ?? '';
+    const teammateIndex = seenPerTeam.get(teamKey) ?? 0;
+    seenPerTeam.set(teamKey, teammateIndex + 1);
+
+    return {
+      driver: standing.driver,
+      team,
+      cumulative: cumulativeById.get(standing.driver.id) ?? rounds.map(() => 0),
+      teammateIndex,
+    };
+  });
+
+  return { rounds, series };
+};
+
+/**
+ * 隊友對決：同隊兩位車手在排位與正賽的正面比較。
+ *
+ * 只算**兩人都參與**的場次 —— 一方缺席（未出賽、退賽）的那場不計入，
+ * 否則缺席的一方會被記成「輸」。排位以名次比；正賽以有正式名次者的名次比。
+ */
+const buildBattles = (snapshot: Snapshot, teams: TeamView[]): TeammateBattle[] =>
+  teams.flatMap((team) => {
+    const [first, second] = team.drivers;
+    if (!first || !second) return [];
+
+    const sides: [BattleSide, BattleSide] = [first, second].map((entry) => ({
+      driver: entry.driver,
+      points: entry.points,
+      wins: entry.wins,
+      podiums: snapshot.driverStandings.find((s) => s.driver.id === entry.driver.id)?.podiums ?? null,
+      qualifyingAhead: 0,
+      raceAhead: 0,
+    })) as [BattleSide, BattleSide];
+
+    let qualifyingContests = 0;
+    let raceContests = 0;
+
+    for (const weekend of snapshot.weekends) {
+      const qa = weekend.qualifying?.find((q) => q.driverId === first.driver.id);
+      const qb = weekend.qualifying?.find((q) => q.driverId === second.driver.id);
+      if (qa && qb) {
+        qualifyingContests += 1;
+        if (qa.position < qb.position) sides[0].qualifyingAhead += 1;
+        else sides[1].qualifyingAhead += 1;
+      }
+
+      const ra = weekend.results?.find((r) => r.driverId === first.driver.id && r.classified);
+      const rb = weekend.results?.find((r) => r.driverId === second.driver.id && r.classified);
+      if (ra && rb) {
+        raceContests += 1;
+        if (ra.position < rb.position) sides[0].raceAhead += 1;
+        else sides[1].raceAhead += 1;
+      }
+    }
+
+    return [{ teamId: team.id, a: sides[0], b: sides[1], qualifyingContests, raceContests }];
+  });
+
+/** 從「車手 → 次數」取出最高者；沒有任何資料（全為 0）時為 null。 */
+const topOf = (counts: ReadonlyMap<string, number>, refs: RefIndex, teamOf: ReadonlyMap<string, TeamRef | null>): Highlight | null => {
+  let best: Highlight | null = null;
+  for (const [driverId, count] of counts) {
+    if (count <= 0) continue;
+    if (best === null || count > best.count) {
+      const driver = refs.drivers.get(driverId);
+      if (!driver) continue;
+      best = { driver, team: teamOf.get(driverId) ?? null, count };
+    }
+  }
+  return best;
+};
+
+/**
+ * 本季數據亮點。每一項都可能是 null —— 賽季初無資料時畫面該顯示「尚無」，
+ * 而不是硬湊一個 0 次的贏家。
+ */
+const buildHighlights = (snapshot: Snapshot, refs: RefIndex): SeasonHighlights => {
+  const teamOf = new Map<string, TeamRef | null>(
+    snapshot.driverStandings.map((s) => [s.driver.id, s.teams.at(-1) ?? null]),
+  );
+  const wins = new Map(snapshot.driverStandings.map((s) => [s.driver.id, s.wins]));
+  const podiums = new Map(snapshot.driverStandings.map((s) => [s.driver.id, s.podiums ?? 0]));
+  const poles = new Map<string, number>();
+  const retirements = new Map<string, number>();
+
+  for (const weekend of snapshot.weekends) {
+    const pole = weekend.qualifying?.find((q) => q.position === 1);
+    if (pole) poles.set(pole.driverId, (poles.get(pole.driverId) ?? 0) + 1);
+    for (const r of weekend.results ?? []) {
+      if (!r.classified) retirements.set(r.driverId, (retirements.get(r.driverId) ?? 0) + 1);
+    }
+  }
+
+  return {
+    mostWins: topOf(wins, refs, teamOf),
+    mostPoles: topOf(poles, refs, teamOf),
+    mostPodiums: topOf(podiums, refs, teamOf),
+    mostRetirements: topOf(retirements, refs, teamOf),
+  };
+};
+
+/**
  * 由 Snapshot 與**注入的**現在時間推導出畫面所需的一切。
  *
  * `now` 是顯式參數而非系統時鐘：Next Session 推導、Session 狀態與
@@ -171,13 +310,17 @@ export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
   const refs = indexRefs(snapshot);
   const weekends = snapshot.weekends.map((weekend) => toWeekendView(weekend, nowMs, refs));
 
+  const teams = buildTeams(snapshot);
   const base = {
     season: snapshot.season,
     fetchedAt: snapshot.fetchedAt,
     weekends,
-    teams: buildTeams(snapshot),
+    teams,
     drivers: buildDrivers(snapshot),
     circuits: buildCircuits(snapshot),
+    progression: buildProgression(snapshot),
+    battles: buildBattles(snapshot, teams),
+    highlights: buildHighlights(snapshot, refs),
   };
 
   // 尚未結束的最早一個場次即為 Next Session。

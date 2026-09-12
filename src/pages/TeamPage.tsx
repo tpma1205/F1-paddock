@@ -6,6 +6,8 @@ import { useEntrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { TeamLogo } from '../app/TeamLogo.tsx';
 import { DriverCard } from '../app/cards/DriverCard.tsx';
+import { TeammateBattleCard } from '../app/TeammateBattleCard.tsx';
+import type { TeammateBattle } from '../domain/types.ts';
 import { readableOn } from '../app/colour.ts';
 import { localisedTeam } from '../data/localisation.ts';
 
@@ -14,11 +16,13 @@ const PAGE_BACKGROUND = '#07070a';
 interface TeamPageProps {
   season: string;
   teams: TeamView[];
+  battles: TeammateBattle[];
 }
 
-export const TeamPage = ({ season, teams }: TeamPageProps): JSX.Element => {
+export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element => {
   const { teamId } = useParams();
   const team = teams.find((candidate) => candidate.id === teamId);
+  const battle = battles.find((candidate) => candidate.teamId === teamId);
   const { container, item } = useEntrance();
 
   if (!team) {
@@ -89,6 +93,17 @@ export const TeamPage = ({ season, teams }: TeamPageProps): JSX.Element => {
           <DriverCard key={entry.driver.id} entry={entry} colour={accent} variants={item} />
         ))}
       </ul>
+
+      {battle && (
+        <>
+          <motion.h2 className="section-title" variants={item}>
+            隊友對決
+          </motion.h2>
+          <motion.div variants={item}>
+            <TeammateBattleCard battle={battle} colour={team.colour} />
+          </motion.div>
+        </>
+      )}
     </motion.article>
   );
 };
