@@ -2434,3 +2434,37 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------- 按鈕 */
+
+.listing__head--row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* 主要動作用骨幹紅 —— 這是「網站」在說話，不是內容 */
+.button {
+  padding: 0.6rem 1.1rem;
+  background: var(--f1-red);
+  border: none;
+  border-radius: 999px;
+  color: #fff;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.button:hover {
+  background: var(--f1-red-bright);
+  transform: translateY(-1px);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+

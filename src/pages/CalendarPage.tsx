@@ -7,6 +7,7 @@ import { BilingualName } from '../app/BilingualName.tsx';
 import { Flag } from '../app/Flag.tsx';
 import { localisedCircuit, localisedDriver, localisedRaceWeekend } from '../data/localisation.ts';
 import { formatCompactCountdown, formatRaceDate } from '../app/formatting.ts';
+import { buildCalendar } from '../domain/ics.ts';
 
 interface CalendarPageProps {
   season: string;
@@ -15,7 +16,31 @@ interface CalendarPageProps {
   nextRound: number | null;
   nowMs: number;
   timeZone: string;
+  /** 快照時間，作為 .ics 的 DTSTAMP。 */
+  fetchedAt: string;
 }
+
+/**
+ * 產生並下載整季的 .ics。時間以 UTC 寫入，匯入 Google／Apple 日曆後會
+ * 自動換算成使用者時區（見 domain/ics.ts）。
+ */
+const downloadCalendar = (season: string, weekends: WeekendView[], fetchedAt: string): void => {
+  const siteUrl = `${window.location.origin}${import.meta.env.BASE_URL}`.replace(/\/$/, '');
+  const ics = buildCalendar({
+    season,
+    weekends,
+    stamp: fetchedAt,
+    siteUrl,
+    localiseRace: (name) => localisedRaceWeekend(name)?.zh ?? null,
+  });
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `f1-${season}.ics`;
+  anchor.click();
+  URL.revokeObjectURL(url);
+};
 
 export const CalendarPage = ({
   season,
@@ -23,17 +48,27 @@ export const CalendarPage = ({
   nextRound,
   nowMs,
   timeZone,
+  fetchedAt,
 }: CalendarPageProps): JSX.Element => {
   const { container, item } = useEntrance();
   const completed = weekends.filter((w) => w.raceStatus === 'finished').length;
 
   return (
     <motion.section className="listing" variants={container} initial="hidden" animate="shown">
-      <motion.header className="listing__head" variants={item}>
-        <p className="hero__eyebrow">
-          {season} 賽季 · 已完成 {completed} / {weekends.length} 站
-        </p>
-        <h1 className="listing__title">Calendar</h1>
+      <motion.header className="listing__head listing__head--row" variants={item}>
+        <div>
+          <p className="hero__eyebrow">
+            {season} 賽季 · 已完成 {completed} / {weekends.length} 站
+          </p>
+          <h1 className="listing__title">Calendar</h1>
+        </div>
+        <button
+          type="button"
+          className="button"
+          onClick={() => downloadCalendar(season, weekends, fetchedAt)}
+        >
+          加入行事曆（.ics）
+        </button>
       </motion.header>
 
       <ol className="calendar">

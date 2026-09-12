@@ -4,10 +4,10 @@
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 可下載涵蓋本季全部 Race Weekend 的 .ics 檔
-- [ ] 匯出檔含正確的時區資訊，匯入後顯示時間與網站一致
-- [ ] 事件標題含 Race Weekend 中英名稱與 Session 名稱
-- [ ] 產出格式符合 iCalendar 規範，可被 Google 日曆與 Apple 日曆接受
-- [ ] .ics 產生器為純函式並具備自己的測試——**時區錯誤會安靜地發生，必須被測試守住**
+- [x] 可下載涵蓋本季全部 Race Weekend 的 .ics 檔
+- [x] 匯出檔含正確的時區資訊，匯入後顯示時間與網站一致
+- [x] 事件標題含 Race Weekend 中英名稱與 Session 名稱
+- [x] 產出格式符合 iCalendar 規範，可被 Google 日曆與 Apple 日曆接受
+- [x] .ics 產生器為純函式並具備自己的測試——**時區錯誤會安靜地發生，必須被測試守住**

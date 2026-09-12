@@ -98,6 +98,7 @@ export const App = (): JSX.Element => {
                   nextRound={nextRound}
                   nowMs={now.getTime()}
                   timeZone={timeZone}
+                  fetchedAt={viewModel.fetchedAt}
                 />
               }
             />
