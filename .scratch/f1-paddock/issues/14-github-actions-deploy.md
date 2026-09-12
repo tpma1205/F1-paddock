@@ -6,12 +6,12 @@
 
 **Blocked by:** 12, 13
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 排程於每週二（台灣時間）執行抓取 → 建置 → 部署至 GitHub Pages
-- [ ] `workflow_dispatch` 可手動觸發
-- [ ] **抓取失敗時沿用既有快照繼續建置**，部署不因此失敗
-- [ ] 抓取到的資料不 commit 回 repo（換季封存為唯一例外）
-- [ ] 換季時將上一季完整快照凍結並 commit 一次
-- [ ] 網站於 GitHub Pages 上實際可存取，內頁直接開啟與重整皆正常
-- [ ] README 說明如何手動觸發更新與本機開發
+- [x] 排程於每週二（台灣時間）執行抓取 → 建置 → 部署至 GitHub Pages
+- [x] `workflow_dispatch` 可手動觸發
+- [x] **抓取失敗時沿用既有快照繼續建置**，部署不因此失敗
+- [x] 抓取到的資料不 commit 回 repo（換季封存為唯一例外）
+- [x] 換季時將上一季完整快照凍結並 commit 一次
+- [x] 網站於 GitHub Pages 上實際可存取，內頁直接開啟與重整皆正常
+- [x] README 說明如何手動觸發更新與本機開發

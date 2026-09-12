@@ -1,7 +1,7 @@
 /**
  * 建置後：為每個已知路由產生實體 index.html，並放置 404.html 安全網。
  *
- * GitHub Pages 是純靜態伺服器，不認得前端路由。直接開 /f1-paddock/drivers
+ * GitHub Pages 是純靜態伺服器，不認得前端路由。直接開 /F1-paddock/drivers
  * 它會去找一個叫 drivers 的檔案。解法（docs/adr/0002）：把 dist/index.html
  * 複製到 dist/<route>/index.html —— 因為資料由前端載入，每個 HTML 外殼內容
  * 完全相同，複製就夠了，不需要 SSR。

@@ -21,7 +21,7 @@ const CalendarPage = lazy(() => import('./pages/CalendarPage.tsx').then((m) => (
 const RacePage = lazy(() => import('./pages/RacePage.tsx').then((m) => ({ default: m.RacePage })));
 
 /**
- * 路由的 basename 取自 Vite 的 base（`/f1-paddock/`），不另外寫一份 ——
+ * 路由的 basename 取自 Vite 的 base（`/F1-paddock/`），不另外寫一份 ——
  * 兩者不一致時 GitHub Pages 上所有連結都會壞（見 docs/adr/0002）。
  */
 const BASENAME = import.meta.env.BASE_URL.replace(/\/$/, '');

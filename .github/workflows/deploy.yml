@@ -1,0 +1,80 @@
+# 抓取最新資料 → 建置 → 部署到 GitHub Pages。
+#
+# 三種觸發：
+# - push 到 main：程式碼變更即部署
+# - 每週二台北時間 10:00（UTC 02:00）：正賽多在週日、少數週六，週二可確保賽果已定案
+# - workflow_dispatch：隨時手動更新
+#
+# 兩條規則（docs/adr/0001、0004）：
+# - 抓取失敗沿用既有快照繼續建置，第三方服務的故障不該讓部署紅字
+# - 抓到的資料不 commit 回 repo；只有「一季結束的最終狀態」與「新公布的下一季」
+#   會被封存 commit 一次（scripts/archive-snapshots.ts 決定）
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # 抓取腳本本身就會在失敗時沿用既有快照並以 0 退出，這裡不需要 continue-on-error。
+      - name: 抓取最新資料
+        run: npm run fetch
+
+      - name: 封存已結束的球季（若有）
+        run: |
+          FILES=$(node scripts/archive-snapshots.ts)
+          if [ -z "$FILES" ]; then
+            echo "沒有需要封存的快照。"
+            exit 0
+          fi
+          echo "封存：$FILES"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          echo "$FILES" | xargs git add
+          git commit -m "封存快照 [skip ci]" -m "由 Deploy workflow 自動 commit：該季已結束，或新一季賽程首次出現。"
+          git push
+
+      - name: 測試
+        run: npm test
+
+      - name: 建置（含型別檢查與路由預產生）
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

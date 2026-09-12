@@ -1,6 +1,6 @@
 # 部署到 GitHub Pages，並在建置期產生每個路由的實體 HTML
 
-專案部署到 GitHub Pages（不使用 Vercel/Netlify，因為使用者不願增開帳號）。Repo 名為 `f1-paddock`，因此 Vite 的 `base` 固定為 `/f1-paddock/`。GitHub Pages 是純靜態檔案伺服器、不認得前端路由，直接開啟或重整內頁會 404；我們的解法是在建置期把 `index.html` 複製到每一個已知路由目錄（`teams/`、`drivers/<id>/`、`circuits/<id>/` 等，約 60 個），讓伺服器真的找得到檔案，再由 React Router 於前端接手。
+專案部署到 GitHub Pages（不使用 Vercel/Netlify，因為使用者不願增開帳號）。Repo 名為 `F1-paddock`（大寫 F，以實際建立的 repo 為準），因此 Vite 的 `base` 固定為 `/F1-paddock/`——GitHub Pages 的路徑須與 repo 名完全一致。GitHub Pages 是純靜態檔案伺服器、不認得前端路由，直接開啟或重整內頁會 404；我們的解法是在建置期把 `index.html` 複製到每一個已知路由目錄（`teams/`、`drivers/<id>/`、`circuits/<id>/` 等，約 60 個），讓伺服器真的找得到檔案，再由 React Router 於前端接手。
 
 ## Considered Options
 
@@ -13,4 +13,4 @@
 - 路由清單由快照資料推導，**新增一種路由型態時必須同步更新產生腳本**，否則該路由直接開啟會 404。
 - 仍保留一份 `404.html` 作為安全網，處理使用者打錯網址的情況。
 - GitHub Pages 免費方案僅支援 public repo，**本站原始碼與畫面皆為公開**。這會限制可直接引用的第三方圖片素材，相關取捨另行記錄。
-- `base` 路徑寫死為 `/f1-paddock/`；若日後改用自訂網域或更名 repo，需一併調整並重新驗證資源路徑。
+- `base` 路徑寫死為 `/F1-paddock/`；若日後改用自訂網域或更名 repo，需一併調整並重新驗證資源路徑。

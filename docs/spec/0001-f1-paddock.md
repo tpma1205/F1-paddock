@@ -118,7 +118,7 @@
 
 ### 路由與部署
 
-- 部署至 GitHub Pages，repo 名 `f1-paddock`，Vite `base` 為 `/f1-paddock/`（ADR-0002）。
+- 部署至 GitHub Pages，repo 名 `F1-paddock`，Vite `base` 為 `/F1-paddock/`（ADR-0002）。
 - 使用 BrowserRouter；**建置期依 Snapshot 產生每個已知路由的實體 HTML**（約 60 個），使靜態伺服器真的找得到檔案。另備 `404.html` 作為安全網。
 - **路由清單由 View Model 提供**，而非在建置腳本中另行硬編。這是為了讓「新增路由型態卻忘記更新產生腳本」這個 ADR-0002 已知陷阱能被測試守住。
 - 路由帶 `season` 維度（如 `/2026/drivers/antonelli`），當前球季可省略年份。
@@ -200,4 +200,4 @@
 - **GitHub Pages 免費方案僅支援 public repo**，因此原始碼與畫面皆為公開。這是圖片政策（ADR-0003）採熱連結而非納入 repo 的直接原因。
 - 三個資料來源皆為免費且由社群或志工維護，**應被視為可能失效的依賴**。Jolpica 每月營運成本約 45 美元、由志工維護；抓取行為應保持節制，降級路徑應被當作常態。
 - 分五階段交付，**階段 1（專案地基、設計系統、Hero 大倒數與場次面板）為視覺方向檢查點**——份量足以判斷風格，但方向若有誤，需丟棄的成果仍少。
-- 待補的事實：使用者的 GitHub 帳號名稱（決定最終網址），以及 `f1-paddock` repo 是否已建立。
+- GitHub 帳號 `tpma1205`，repo `tpma1205/F1-paddock`，網址 `https://tpma1205.github.io/F1-paddock/`。
