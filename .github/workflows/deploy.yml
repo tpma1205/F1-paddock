@@ -65,6 +65,12 @@ jobs:
       - name: 建置（含型別檢查與路由預產生）
         run: npm run build
 
+      # 把 Pages 來源設為 GitHub Actions（新 repo 預設是「從分支部署」，會把原始碼
+      # 直接發布出去）。enablement: true 讓第一次執行就自動啟用，不需手動進設定頁。
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
