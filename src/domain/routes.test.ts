@@ -5,7 +5,7 @@ import { buildViewModel } from './viewModel.ts';
 import { routesFor } from './routes.ts';
 
 const snapshot = buildFixtureSnapshot();
-const viewModel = buildViewModel(snapshot, new Date('2026-09-10T12:00:00Z'));
+const viewModel = buildViewModel([snapshot], new Date('2026-09-10T12:00:00Z'));
 const routes = routesFor(viewModel);
 
 describe('routesFor —— 建置期產生實體 HTML 的依據', () => {

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useMemo, type JSX } from 'react';
 import { BrowserRouter, NavLink, Route, Routes } from 'react-router';
-import { bundledSnapshot } from './data/snapshot.ts';
+import { bundledSnapshots } from './data/snapshot.ts';
 import { buildViewModel } from './domain/viewModel.ts';
 import { useNow } from './app/useNow.ts';
 import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/formatting.ts';
@@ -29,7 +29,7 @@ const BASENAME = import.meta.env.BASE_URL.replace(/\/$/, '');
 export const App = (): JSX.Element => {
   const now = useNow();
   const timeZone = useMemo(resolveTimeZone, []);
-  const viewModel = useMemo(() => buildViewModel(bundledSnapshot, now), [now]);
+  const viewModel = useMemo(() => buildViewModel(bundledSnapshots, now), [now]);
   const timeZoneLabel = formatTimeZoneLabel(now, timeZone);
   const nextRound = viewModel.nextSession?.weekend.round ?? null;
   const msUntilNext = viewModel.nextSession?.msUntilStart ?? 0;
@@ -65,19 +65,21 @@ export const App = (): JSX.Element => {
             />
             <Route
               path="/teams"
-              element={<TeamsPage season={viewModel.season} teams={viewModel.teams} />}
+              element={<TeamsPage season={viewModel.standingsSeason} teams={viewModel.teams} />}
             />
             <Route
               path="/teams/:teamId"
-              element={<TeamPage season={viewModel.season} teams={viewModel.teams} battles={viewModel.battles} />}
+              element={
+                <TeamPage season={viewModel.standingsSeason} teams={viewModel.teams} battles={viewModel.battles} />
+              }
             />
             <Route
               path="/drivers"
-              element={<DriversPage season={viewModel.season} drivers={viewModel.drivers} />}
+              element={<DriversPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
             />
             <Route
               path="/drivers/:driverId"
-              element={<DriverPage season={viewModel.season} drivers={viewModel.drivers} />}
+              element={<DriverPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
             />
             <Route
               path="/circuits"

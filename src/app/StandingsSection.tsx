@@ -12,7 +12,10 @@ const CARD_BACKGROUND = '#101014';
 const TOP_N = 5;
 
 interface StandingsSectionProps {
+  /** 積分所屬的球季 —— 新球季尚無積分時是上一季。 */
   season: string;
+  /** 是否為該季最終結果。 */
+  isFinal: boolean;
   completedRound: number | null;
   drivers: DriverView[];
   teams: TeamView[];
@@ -26,6 +29,7 @@ interface StandingsSectionProps {
  */
 export const StandingsSection = ({
   season,
+  isFinal,
   completedRound,
   drivers,
   teams,
@@ -44,8 +48,8 @@ export const StandingsSection = ({
     >
       <motion.header className="standings__head" variants={item}>
         <p className="hero__eyebrow">
-          {season} 賽季 · 本季戰況
-          {completedRound !== null && <> · {completedRound} 站後</>}
+          {season} 賽季 · {isFinal ? '最終積分' : '本季戰況'}
+          {!isFinal && completedRound !== null && <> · {completedRound} 站後</>}
         </p>
         <h2 className="standings__title">Standings</h2>
       </motion.header>

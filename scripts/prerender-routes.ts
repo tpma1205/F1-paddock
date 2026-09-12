@@ -23,18 +23,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(ROOT, 'dist');
 const SNAPSHOTS = join(ROOT, 'src', 'data', 'snapshots');
 
-/**
- * 與 src/data/snapshot.ts 相同的選擇規則（最新一季），但這裡跑在 Node，
- * 無法使用 Vite 的 import.meta.glob，直接讀目錄。
- */
-const loadLatestSnapshot = (): Snapshot => {
-  const files = readdirSync(SNAPSHOTS)
+/** 讀入所有球季的快照 —— 賽程季與積分季由 buildViewModel 決定。 */
+const loadSnapshots = (): Snapshot[] =>
+  readdirSync(SNAPSHOTS)
     .filter((name) => name.endsWith('.json'))
-    .sort();
-  const newest = files.at(-1);
-  if (!newest) throw new Error('找不到任何快照 —— 請先執行 `npm run fetch`。');
-  return JSON.parse(readFileSync(join(SNAPSHOTS, newest), 'utf8')) as Snapshot;
-};
+    .map((name) => JSON.parse(readFileSync(join(SNAPSHOTS, name), 'utf8')) as Snapshot);
 
 const main = (): void => {
   const indexHtml = join(DIST, 'index.html');
@@ -42,7 +35,7 @@ const main = (): void => {
     throw new Error('dist/index.html 不存在 —— 請先執行 `vite build`。');
   }
 
-  const viewModel = buildViewModel(loadLatestSnapshot(), new Date());
+  const viewModel = buildViewModel(loadSnapshots(), new Date());
   const routes = routesFor(viewModel).filter((route) => route !== '/');
 
   for (const route of routes) {

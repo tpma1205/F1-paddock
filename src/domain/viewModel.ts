@@ -296,31 +296,67 @@ const buildHighlights = (snapshot: Snapshot, refs: RefIndex): SeasonHighlights =
   };
 };
 
+/** 該季所有場次都已結束。沒有任何場次的快照視為已結束（沒東西可等）。 */
+const seasonFinished = (snapshot: Snapshot, nowMs: number): boolean =>
+  snapshot.weekends.every((w) => w.sessions.every((s) => endOf(s) <= nowMs));
+
+const hasStandings = (snapshot: Snapshot): boolean => snapshot.driverStandings.length > 0;
+
 /**
- * 由 Snapshot 與**注入的**現在時間推導出畫面所需的一切。
+ * 從所有球季的快照中決定「賽程用哪一季、積分用哪一季」。
  *
- * `now` 是顯式參數而非系統時鐘：Next Session 推導、Session 狀態與
+ * - **賽程季**：最舊的「尚未結束」的球季。球季進行中時就是本季（即使下一季
+ *   賽程已公布也不提前切換）；本季最後一場結束後自動變成下一季；全部都
+ *   結束（下一季賽程尚未公布）時退回最新一季，進入 Off-season。
+ * - **積分季**：賽程季本身有積分就用它；新球季剛開始還沒有積分時，回退到
+ *   最近一個有積分的舊球季，畫面標示年份。
+ */
+const selectSeasons = (
+  snapshots: ReadonlyArray<Snapshot>,
+  nowMs: number,
+): { schedule: Snapshot; standings: Snapshot } => {
+  const sorted = [...snapshots].sort((a, b) => a.season.localeCompare(b.season));
+  const newest = sorted.at(-1);
+  if (!newest) throw new Error('沒有任何快照 —— 請先執行 `npm run fetch`。');
+
+  const schedule = sorted.find((s) => !seasonFinished(s, nowMs)) ?? newest;
+  const standings = hasStandings(schedule)
+    ? schedule
+    : ([...sorted].reverse().find((s) => s.season < schedule.season && hasStandings(s)) ?? schedule);
+
+  return { schedule, standings };
+};
+
+/**
+ * 由所有球季的 Snapshot 與**注入的**現在時間推導出畫面所需的一切。
+ *
+ * `now` 是顯式參數而非系統時鐘：Next Session 推導、Session 狀態、換季與
  * Off-season 降級在真實世界一年只發生一次，唯有把時間當作輸入才測得到
  * （見 docs/adr/0004 與 docs/spec/0001 的測試接縫）。
  *
  * 本函式為純函式 —— 元件不得自行做任何時間判斷。
  */
-export const buildViewModel = (snapshot: Snapshot, now: Date): ViewModel => {
+export const buildViewModel = (snapshots: ReadonlyArray<Snapshot>, now: Date): ViewModel => {
   const nowMs = now.getTime();
-  const refs = indexRefs(snapshot);
-  const weekends = snapshot.weekends.map((weekend) => toWeekendView(weekend, nowMs, refs));
+  const { schedule, standings } = selectSeasons(snapshots, nowMs);
 
-  const teams = buildTeams(snapshot);
+  // 賽果的參照由「積分季」解析 —— 賽程季剛開始時還沒有車手名單。
+  const refs = indexRefs(standings);
+  const weekends = schedule.weekends.map((weekend) => toWeekendView(weekend, nowMs, refs));
+
+  const teams = buildTeams(standings);
   const base = {
-    season: snapshot.season,
-    fetchedAt: snapshot.fetchedAt,
+    season: schedule.season,
+    standingsSeason: standings.season,
+    standingsAreFinal: standings !== schedule || seasonFinished(standings, nowMs),
+    fetchedAt: schedule.fetchedAt,
     weekends,
     teams,
-    drivers: buildDrivers(snapshot),
-    circuits: buildCircuits(snapshot),
-    progression: buildProgression(snapshot),
-    battles: buildBattles(snapshot, teams),
-    highlights: buildHighlights(snapshot, refs),
+    drivers: buildDrivers(standings),
+    circuits: buildCircuits(schedule),
+    progression: buildProgression(standings),
+    battles: buildBattles(standings, teams),
+    highlights: buildHighlights(standings, refs),
   };
 
   // 尚未結束的最早一個場次即為 Next Session。

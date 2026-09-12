@@ -10,7 +10,7 @@ import { buildViewModel } from './viewModel.ts';
  */
 describe('buildViewModel', () => {
   const snapshot = buildFixtureSnapshot();
-  const at = (iso: string) => buildViewModel(snapshot, new Date(iso));
+  const at = (iso: string) => buildViewModel([snapshot], new Date(iso));
 
   describe('Next Session 推導', () => {
     it('球季進行中，指向下一個尚未開始的場次', () => {
@@ -191,7 +191,7 @@ describe('buildViewModel', () => {
     it('賽果指向積分榜沒有的車手時，退回最小物件而非整頁失效', () => {
       const tampered = structuredClone(snapshot);
       tampered.weekends[12]!.results![0]!.driverId = 'ghost';
-      const vm = buildViewModel(tampered, new Date('2026-09-10T12:00:00Z'));
+      const vm = buildViewModel([tampered], new Date('2026-09-10T12:00:00Z'));
       const winner = vm.weekends[12]?.results?.[0];
       expect(winner?.driver.id).toBe('ghost');
       expect(winner?.driver.headshotUrl).toBeNull();
@@ -297,7 +297,7 @@ describe('buildViewModel', () => {
         w.sprintResults = null;
         w.qualifying = null;
       }
-      const vm = buildViewModel(fresh, new Date('2026-01-01T00:00:00Z'));
+      const vm = buildViewModel([fresh], new Date('2026-01-01T00:00:00Z'));
       expect(vm.progression.rounds).toEqual([]);
       expect(vm.progression.series.every((s) => s.cumulative.length === 0)).toBe(true);
     });
@@ -363,7 +363,7 @@ describe('buildViewModel', () => {
         s.wins = 0;
         s.podiums = null;
       }
-      const vm = buildViewModel(fresh, new Date('2026-01-01T00:00:00Z'));
+      const vm = buildViewModel([fresh], new Date('2026-01-01T00:00:00Z'));
       expect(vm.highlights).toEqual({ mostWins: null, mostPoles: null, mostPodiums: null, mostRetirements: null });
     });
   });

@@ -24,7 +24,8 @@ const PREVIEW_COUNT = 6;
 
 export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps): JSX.Element => {
   const { container, item } = useEntrance();
-  const { season, nextSession, focusWeekend, isOffSeason, drivers, teams, circuits } = viewModel;
+  const { season, standingsSeason, standingsAreFinal, nextSession, focusWeekend, isOffSeason, drivers, teams, circuits } =
+    viewModel;
   const completedRound = viewModel.weekends.filter((w) => w.raceStatus === 'finished').length || null;
 
   // 視差：前景（標題）往上走得比背景（暈光）快。只在寬螢幕且未要求減少動畫時啟用。
@@ -64,10 +65,10 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
         {isOffSeason || !nextSession ? (
           <>
             <motion.h1 className="hero__title" variants={item}>
-              本季已結束
+              {season} 賽季已結束
             </motion.h1>
             <motion.p className="hero__note" variants={item}>
-              下一季賽程公布後，此處將顯示開幕倒數。
+              下一季賽程公布後，此處將自動顯示開幕倒數。
             </motion.p>
           </>
         ) : (
@@ -117,9 +118,15 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
         />
       )}
 
-      <StandingsSection season={season} completedRound={completedRound} drivers={drivers} teams={teams} />
+      <StandingsSection
+        season={standingsSeason}
+        isFinal={standingsAreFinal}
+        completedRound={completedRound}
+        drivers={drivers}
+        teams={teams}
+      />
 
-      <InsightsSection season={season} progression={viewModel.progression} highlights={viewModel.highlights} />
+      <InsightsSection season={standingsSeason} progression={viewModel.progression} highlights={viewModel.highlights} />
 
       <PreviewStrip title="車隊" titleEn="Teams" href="/teams" accent={leaderColour ?? undefined}>
         {teams.slice(0, PREVIEW_COUNT).map((team) => (

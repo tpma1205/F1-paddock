@@ -295,7 +295,15 @@ export interface SeasonHighlights {
 }
 
 export interface ViewModel {
+  /** 賽程與倒數所屬的球季 —— 本季結束後自動指向下一季。 */
   season: string;
+  /**
+   * 積分、車隊、車手、走勢與亮點所屬的球季。新球季尚無積分時回退到
+   * 上一季，此時與 season 不同，畫面必須標示年份（見 docs/adr/0004）。
+   */
+  standingsSeason: string;
+  /** 積分是否為該季最終結果（該季所有場次已結束，或已被下一季取代）。 */
+  standingsAreFinal: boolean;
   fetchedAt: string;
   /** 本季全部 Race Weekend，依 Round 排序。 */
   weekends: WeekendView[];

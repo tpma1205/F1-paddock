@@ -22,7 +22,8 @@ import {
 import type { RawOpenF1Driver } from '../src/data/openf1.ts';
 import type { Snapshot } from '../src/domain/types.ts';
 
-const BASE = 'https://api.jolpi.ca/ergast/f1/current';
+const API = 'https://api.jolpi.ca/ergast/f1';
+const BASE = `${API}/current`;
 const OPENF1_DRIVERS = 'https://api.openf1.org/v1/drivers?session_key=latest';
 
 /**
@@ -64,6 +65,34 @@ const getAllPages = async <T extends { MRData: { total: string } }>(
     if (offset + 100 >= Number(page.MRData.total)) break;
   }
   return pages;
+};
+
+/**
+ * 探測下一季的賽程。
+ *
+ * 本季最後一場結束後、Jolpica 的 `/current/` 跳到新年之前，有一段空窗；而
+ * 下一季賽程通常在年中就公布了。若已公布，寫一份「只有賽程」的快照 ——
+ * 讓 Off-season 的首頁能倒數到下一季開幕（docs/adr/0004）。年份由本季
+ * 推算，不寫死。尚未公布（total 為 0）或抓取失敗都靜默略過。
+ */
+const fetchUpcomingSeason = async (currentSeason: string): Promise<void> => {
+  const next = String(Number(currentSeason) + 1);
+  try {
+    const races = await getJson<RawRacesResponse>(`${API}/${next}/races/?format=json&limit=30`);
+    if (races.MRData.RaceTable.Races.length === 0) return;
+
+    const empty = { MRData: { StandingsTable: { season: next, round: '0', StandingsLists: [] } } };
+    const snapshot = normaliseSeason({
+      races,
+      driverStandings: empty,
+      teamStandings: empty,
+      fetchedAt: new Date().toISOString(),
+    });
+    writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+    console.log(`✓ ${next} 球季賽程已公布：${snapshot.weekends.length} 站（僅賽程，供 Off-season 倒數）`);
+  } catch {
+    // 下一季不存在或暫時抓不到都不是錯誤 —— 本季快照已寫好。
+  }
 };
 
 /** 目前磁碟上最新的一份快照；沒有則為 null。 */
@@ -155,6 +184,7 @@ const main = async (): Promise<void> => {
 
     mkdirSync(OUTPUT_DIR, { recursive: true });
     writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+    await fetchUpcomingSeason(snapshot.season);
     const coloured = snapshot.teamStandings.filter((s) => s.team.colour !== null).length;
     const withResults = snapshot.weekends.filter((w) => w.results !== null).length;
     console.log(

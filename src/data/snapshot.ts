@@ -23,15 +23,19 @@ for (const value of Object.values(modules)) {
   bySeason.set(snapshot.season, snapshot);
 }
 
-/** 已封存的球季，由新到舊。 */
-export const availableSeasons: string[] = [...bySeason.keys()].sort().reverse();
+/**
+ * 所有打包進來的球季快照，由新到舊。
+ *
+ * 哪一季拿來當賽程、哪一季拿來當積分，由 buildViewModel 依「現在時間」決定
+ * （見 docs/adr/0004）—— 這裡只負責把檔案全部交出去，不做時間判斷。
+ */
+export const bundledSnapshots: Snapshot[] = [...bySeason.values()].sort((a, b) =>
+  b.season.localeCompare(a.season),
+);
 
-const latestSeason = availableSeasons[0];
-const latest = latestSeason === undefined ? undefined : bySeason.get(latestSeason);
-
-if (!latest) {
+if (bundledSnapshots.length === 0) {
   throw new Error('找不到任何快照 —— 請先執行 `npm run fetch`。');
 }
 
-/** 最新一季的 Snapshot。球季由檔案決定，程式中不寫死年份。 */
-export const bundledSnapshot: Snapshot = latest;
+/** 最新一季 —— 供對照表與資產的涵蓋率測試使用；畫面一律用 bundledSnapshots。 */
+export const bundledSnapshot: Snapshot = bundledSnapshots[0]!;
