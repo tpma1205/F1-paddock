@@ -32,6 +32,7 @@ export const App = (): JSX.Element => {
   const viewModel = useMemo(() => buildViewModel(bundledSnapshots, now), [now]);
   const timeZoneLabel = formatTimeZoneLabel(now, timeZone);
   const nextRound = viewModel.nextSession?.weekend.round ?? null;
+  const nextSessionKind = viewModel.nextSession?.session.kind ?? null;
   const msUntilNext = viewModel.nextSession?.msUntilStart ?? 0;
 
   return (
@@ -96,7 +97,6 @@ export const App = (): JSX.Element => {
                   season={viewModel.season}
                   weekends={viewModel.weekends}
                   nextRound={nextRound}
-                  nowMs={now.getTime()}
                   timeZone={timeZone}
                   fetchedAt={viewModel.fetchedAt}
                 />
@@ -109,6 +109,7 @@ export const App = (): JSX.Element => {
                   season={viewModel.season}
                   weekends={viewModel.weekends}
                   nextRound={nextRound}
+                  nextSessionKind={nextSessionKind}
                   msUntilNext={msUntilNext}
                   timeZone={timeZone}
                   timeZoneLabel={timeZoneLabel}

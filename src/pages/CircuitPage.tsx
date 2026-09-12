@@ -126,7 +126,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
           </dd>
         </div>
         <div>
-          <dt>本季賽事</dt>
+          <dt>本季站次</dt>
           <dd>
             {weekends.map((w) => (
               <span key={w.round} className="circuit-detail__weekend">

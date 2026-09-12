@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { GROUND, NEUTRAL_ACCENT } from '../app/tokens.ts';
 import { Link, useParams } from 'react-router';
 import { motion, type MotionStyle } from 'motion/react';
 import type { DriverView } from '../domain/types.ts';
@@ -8,7 +9,6 @@ import { DriverPhoto } from '../app/DriverPhoto.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedDriver, localisedTeam } from '../data/localisation.ts';
 
-const PAGE_BACKGROUND = '#07070a';
 
 interface DriverPageProps {
   season: string;
@@ -32,10 +32,10 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
   }
 
   const { driver, team } = entry;
-  const accent = team?.colour ?? '#8b8b96';
+  const accent = team?.colour ?? NEUTRAL_ACCENT;
   const style = {
     '--team-colour': accent,
-    '--team-text': readableOn(accent, PAGE_BACKGROUND),
+    '--team-text': readableOn(accent, GROUND),
   } as MotionStyle;
   const fullName = `${driver.givenName} ${driver.familyName}`;
 

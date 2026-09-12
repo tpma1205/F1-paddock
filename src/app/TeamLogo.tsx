@@ -1,4 +1,5 @@
 import { useState, type JSX } from 'react';
+import { NEUTRAL_ACCENT } from './tokens.ts';
 import type { TeamView } from '../domain/types.ts';
 import { readableOn } from './colour.ts';
 import { teamLogoUrl, wordmarkText } from './teamAssets.ts';
@@ -27,7 +28,7 @@ interface TeamLogoProps {
 export const TeamLogo = ({ team, size = 'card' }: TeamLogoProps): JSX.Element => {
   const [failed, setFailed] = useState(false);
   const url = teamLogoUrl(team.id);
-  const accent = team.colour ?? '#8b8b96';
+  const accent = team.colour ?? NEUTRAL_ACCENT;
 
   const style = { '--team-colour': accent } as React.CSSProperties;
 

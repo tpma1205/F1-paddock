@@ -87,7 +87,7 @@ export interface RaceResult {
   teamId: string;
 }
 
-/** 排位賽單一車手的成績。 */
+/** 排位賽單一車手的 Result。 */
 export interface QualifyingResult {
   position: number;
   driverId: string;
@@ -96,6 +96,10 @@ export interface QualifyingResult {
   q2: string | null;
   q3: string | null;
 }
+
+/** 有正式名次且在前三 —— 頒獎台的唯一定義，統計與畫面共用。 */
+export const isPodium = (result: Pick<RaceResult, 'classified' | 'position'>): boolean =>
+  result.classified && result.position <= 3;
 
 export interface RaceWeekend {
   round: number;
@@ -108,7 +112,7 @@ export interface RaceWeekend {
   results: RaceResult[] | null;
   /** 衝刺賽 Result，形狀與正賽相同；非 Sprint Weekend 或尚未舉行時為 null。 */
   sprintResults: RaceResult[] | null;
-  /** 排位賽成績，依名次排序；尚未舉行時為 null。 */
+  /** 排位賽 Result，依名次排序；尚未舉行時為 null。 */
   qualifying: QualifyingResult[] | null;
 }
 
@@ -191,6 +195,8 @@ export interface WeekendView {
   sessions: SessionView[];
   /** 正賽的狀態 —— 賽程表用它區分已完賽／進行中／未來。 */
   raceStatus: SessionStatus;
+  /** 距離正賽開始的毫秒數；已開始或已結束為 0。賽程表的倒數用它，元件不自己算時間。 */
+  msUntilRace: number;
   results: ResultView[] | null;
   /** 前三名（有正式名次者），供賽程表直接顯示。 */
   podium: ResultView[];
@@ -208,6 +214,7 @@ export interface DriverSummary {
   position: number;
   points: number;
   wins: number;
+  podiums: number | null;
 }
 
 /** 車手的畫面模型：積分榜資料 + 當前車隊。 */
@@ -281,8 +288,8 @@ export interface TeammateBattle {
 }
 
 export interface Highlight {
-  driver: DriverRef;
-  team: TeamRef | null;
+  /** 並列最高者 —— 平手時不只一位。 */
+  holders: Array<{ driver: DriverRef; team: TeamRef | null }>;
   count: number;
 }
 

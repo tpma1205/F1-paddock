@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { SURFACE, NEUTRAL_ACCENT } from '../app/tokens.ts';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import type { DriverView } from '../domain/types.ts';
@@ -8,7 +9,6 @@ import { DriverPhoto } from '../app/DriverPhoto.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedDriver, localisedTeam } from '../data/localisation.ts';
 
-const CARD_BACKGROUND = '#101014';
 
 interface DriversPageProps {
   season: string;
@@ -41,10 +41,10 @@ interface DriverRowProps {
 
 const DriverRow = ({ entry, variants }: DriverRowProps): JSX.Element => {
   const { driver, team } = entry;
-  const accent = team?.colour ?? '#8b8b96';
+  const accent = team?.colour ?? NEUTRAL_ACCENT;
   const style = {
     '--team-colour': accent,
-    '--team-text': readableOn(accent, CARD_BACKGROUND),
+    '--team-text': readableOn(accent, SURFACE),
   } as React.CSSProperties;
 
   return (

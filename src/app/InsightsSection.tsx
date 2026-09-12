@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { NEUTRAL_ACCENT } from './tokens.ts';
 import { Link } from 'react-router';
 import { motion, type MotionStyle } from 'motion/react';
 import type { Highlight, PointsProgression, SeasonHighlights } from '../domain/types.ts';
@@ -57,22 +58,25 @@ interface HighlightTileProps {
  * 數字用文字色而非車隊色（文字不穿系列色）；identity 由照片與色條承擔。
  */
 const HighlightTile = ({ label, highlight, unit, variants }: HighlightTileProps): JSX.Element => {
-  const accent = highlight?.team?.colour ?? '#8b8b96';
+  // 平手時以第一位的照片與代表色代表，名字列出全部並列者。
+  const lead = highlight?.holders[0];
+  const accent = lead?.team?.colour ?? NEUTRAL_ACCENT;
   const style = { '--team-colour': accent } as MotionStyle;
+  const names = highlight?.holders
+    .map((h) => localisedDriver(h.driver.id)?.zh ?? h.driver.familyName)
+    .join('、');
 
   return (
     <motion.li className="highlight" style={style} variants={variants}>
       <span className="highlight__label">{label}</span>
-      {highlight ? (
-        <Link to={`/drivers/${highlight.driver.id}`} className="highlight__body">
-          <DriverPhoto driver={highlight.driver} colour={accent} />
+      {highlight && lead ? (
+        <Link to={`/drivers/${lead.driver.id}`} className="highlight__body">
+          <DriverPhoto driver={lead.driver} colour={accent} />
           <span className="highlight__figure">
             <span className="highlight__value">{highlight.count}</span>
             <span className="highlight__unit">{unit}</span>
           </span>
-          <span className="highlight__name">
-            {localisedDriver(highlight.driver.id)?.zh ?? highlight.driver.familyName}
-          </span>
+          <span className="highlight__name">{names}</span>
         </Link>
       ) : (
         <span className="highlight__none">尚無資料</span>

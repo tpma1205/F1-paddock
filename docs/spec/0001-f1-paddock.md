@@ -125,7 +125,7 @@
 
 ### 呈現與語言
 
-- 雙語規則：**專有名詞**（Team／Driver／Circuit／Race Weekend）為英文大字 + 中文小字；**Interface Copy** 一律繁體中文，不做雙語並陳。
+- 雙語規則：**專有名詞**（Team／Driver／Circuit／Race Weekend）為英文大字 + 中文小字；**Interface Copy** 一律繁體中文，不做雙語並陳。區塊標題上方的英文小標（如 Teams／Standings／Insights）是**設計元素**而非 Interface Copy——它是 F1 官網視覺語彙的一部分，功能與裝飾線相同，中文標題仍是唯一的語意標題。
 - 中文採**台灣慣用譯名**；無公認譯名者標記為 **Provisional Name**。
 - 中文對照表為專案唯一的手工資產（約 80 筆），與賽道的彎道數／圈數／單圈紀錄同表維護。**它是靜態資料而非抓取結果，必須進版控。**
 - 時區以瀏覽器 `Intl` 偵測，並在畫面明確標示時區名稱與偏移。
@@ -136,7 +136,7 @@
 - **配色分層**：F1 紅 `#E10600` 為網站骨幹（導覽、倒數、狀態、進度條）；**Team 代表色為內容身分**（卡片色條、logo 光暈、對比條、賽道描邊），兩者不重疊。
 - Team 代表色取自 OpenF1 `team_colour`。**低對比色（如 Cadillac `#909090`、Red Bull `#4781D7`）作為文字使用時須自動提亮**，作為圖形裝飾時保留原色。
 - 字體：Titillium Web（英文與數字）+ Noto Sans TC（中文）。
-- 動畫一律以 `transform`／`opacity` 實作；尊重 `prefers-reduced-motion`；窄螢幕自動關閉視差，保留淡入與交錯進場。
+- **滾動驅動與進場動畫**一律以 `transform`／`opacity` 實作（這類動畫每幀都在跑，動到版面就會掉幀）；hover 的顏色／邊框過渡不在此限。尊重 `prefers-reduced-motion`；窄螢幕自動關閉視差，保留淡入與交錯進場。
 
 ### 圖片
 

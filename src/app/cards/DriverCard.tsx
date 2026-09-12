@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { SURFACE, NEUTRAL_ACCENT } from '../tokens.ts';
 import { Link } from 'react-router';
 import { motion, type MotionStyle } from 'motion/react';
 import type { DriverRef } from '../../domain/types.ts';
@@ -8,7 +9,6 @@ import { DriverPhoto } from '../DriverPhoto.tsx';
 import { readableOn } from '../colour.ts';
 import { localisedDriver } from '../../data/localisation.ts';
 
-const CARD_BACKGROUND = '#101014';
 
 /** DriverView 與 DriverSummary 都符合這個形狀 —— 卡片不在乎資料從哪來。 */
 interface DriverCardEntry {
@@ -29,10 +29,10 @@ interface DriverCardProps {
 export const DriverCard = ({ entry, colour, variants }: DriverCardProps): JSX.Element => {
   const { driver } = entry;
   const fullName = `${driver.givenName} ${driver.familyName}`;
-  const accent = colour ?? '#8b8b96';
+  const accent = colour ?? NEUTRAL_ACCENT;
   const style = {
     '--team-colour': accent,
-    '--team-text': readableOn(accent, CARD_BACKGROUND),
+    '--team-text': readableOn(accent, SURFACE),
   } as MotionStyle;
 
   return (

@@ -2406,10 +2406,10 @@ body {
   background: var(--line-soft);
 }
 
+/* 寬度不做過渡 —— width 會觸發版面重排；進場的淡入已由卡片的 stagger 承擔 */
 .battle__fill {
   height: 100%;
   background: var(--team-colour);
-  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .battle__fill--b {

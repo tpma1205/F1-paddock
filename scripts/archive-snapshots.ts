@@ -5,9 +5,11 @@
  * 一個機器人 commit），唯一例外是封存 —— 一季結束後把它的最終狀態凍結
  * 一次。判斷規則：
  *
- * 1. **該季已結束**（所有場次的結束時間都早於現在）且檔案有變動 → 封存。
+ * 1. **該季已結束**（所有場次的結束時間都早於現在）且內容有實質變動 → 封存。
  *    若不在結束時凍結，`/current/` 跨年後就不會再更新它，repo 裡會永遠
- *    停在賽季中的某一週。
+ *    停在賽季中的某一週。「實質」是指 fetchedAt 以外的欄位：賽季結束後每週
+ *    抓取仍會重寫 fetchedAt，若把那也當變動，會從賽末到跨年 commit 好幾次
+ *    而非一次。
  * 2. **新出現的球季檔案**（下一季賽程剛公布）→ 一併納入，讓本機開發的
  *    基準也能倒數到下一季。
  *
@@ -17,17 +19,25 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SESSION_DURATION_MINUTES, type Snapshot } from '../src/domain/types.ts';
+import { seasonFinished } from '../src/domain/season.ts';
+import type { Snapshot } from '../src/domain/types.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SNAPSHOT_DIR = 'src/data/snapshots';
 
-const seasonFinished = (snapshot: Snapshot, nowMs: number): boolean =>
-  snapshot.weekends.every((w) =>
-    w.sessions.every(
-      (s) => Date.parse(s.startsAt) + SESSION_DURATION_MINUTES[s.kind] * 60_000 <= nowMs,
-    ),
-  );
+/** 兩份快照除了 fetchedAt 之外是否相同。 */
+const materiallyEqual = (a: Snapshot, b: Snapshot): boolean =>
+  JSON.stringify({ ...a, fetchedAt: null }) === JSON.stringify({ ...b, fetchedAt: null });
+
+/** HEAD 上的版本；檔案在 HEAD 不存在時為 null。 */
+const committedVersion = (path: string): Snapshot | null => {
+  try {
+    const text = execFileSync('git', ['show', `HEAD:${path}`], { cwd: ROOT, encoding: 'utf8' });
+    return JSON.parse(text) as Snapshot;
+  } catch {
+    return null;
+  }
+};
 
 const main = (): void => {
   // 以參數陣列呼叫、不經 shell —— 路徑不會被當成 shell 語法解讀。
@@ -50,7 +60,11 @@ const main = (): void => {
     }
 
     const snapshot = JSON.parse(readFileSync(join(ROOT, path), 'utf8')) as Snapshot;
-    if (seasonFinished(snapshot, nowMs)) toArchive.push(path);
+    if (!seasonFinished(snapshot, nowMs)) continue;
+
+    const committed = committedVersion(path);
+    if (committed && materiallyEqual(committed, snapshot)) continue; // 只有 fetchedAt 變了
+    toArchive.push(path);
   }
 
   for (const path of toArchive) console.log(path);

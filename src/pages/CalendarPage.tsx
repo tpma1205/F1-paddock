@@ -14,7 +14,6 @@ interface CalendarPageProps {
   weekends: WeekendView[];
   /** Next Session 所在的 Round，用來標出「下一站」。 */
   nextRound: number | null;
-  nowMs: number;
   timeZone: string;
   /** 快照時間，作為 .ics 的 DTSTAMP。 */
   fetchedAt: string;
@@ -46,7 +45,6 @@ export const CalendarPage = ({
   season,
   weekends,
   nextRound,
-  nowMs,
   timeZone,
   fetchedAt,
 }: CalendarPageProps): JSX.Element => {
@@ -77,7 +75,6 @@ export const CalendarPage = ({
             key={weekend.round}
             weekend={weekend}
             isNext={weekend.round === nextRound}
-            nowMs={nowMs}
             timeZone={timeZone}
             variants={item}
           />
@@ -90,12 +87,11 @@ export const CalendarPage = ({
 interface CalendarRowProps {
   weekend: WeekendView;
   isNext: boolean;
-  nowMs: number;
   timeZone: string;
   variants: Entrance['item'];
 }
 
-const CalendarRow = ({ weekend, isNext, nowMs, timeZone, variants }: CalendarRowProps): JSX.Element => {
+const CalendarRow = ({ weekend, isNext, timeZone, variants }: CalendarRowProps): JSX.Element => {
   const race = weekend.sessions.find((s) => s.kind === 'race');
   const classes = ['calendar__row', `calendar__row--${weekend.raceStatus}`, isNext ? 'calendar__row--next' : '']
     .filter(Boolean)
@@ -128,7 +124,7 @@ const CalendarRow = ({ weekend, isNext, nowMs, timeZone, variants }: CalendarRow
           {weekend.raceStatus === 'upcoming' && race && (
             <span className="calendar__countdown">
               {isNext ? '下一站 · ' : ''}
-              倒數 <strong>{formatCompactCountdown(Date.parse(race.startsAt) - nowMs)}</strong>
+              倒數 <strong>{formatCompactCountdown(weekend.msUntilRace)}</strong>
             </span>
           )}
         </span>

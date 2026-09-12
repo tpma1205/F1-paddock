@@ -1,7 +1,8 @@
 import type { JSX } from 'react';
+import { SURFACE, NEUTRAL_ACCENT } from '../app/tokens.ts';
 import { Link, useParams } from 'react-router';
 import { motion } from 'motion/react';
-import type { ResultView, WeekendView } from '../domain/types.ts';
+import type { ResultView, SessionKind, WeekendView } from '../domain/types.ts';
 import { useEntrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { DriverPhoto } from '../app/DriverPhoto.tsx';
@@ -11,7 +12,6 @@ import { readableOn } from '../app/colour.ts';
 import { localisedCircuit, localisedDriver, localisedRaceWeekend, localisedTeam } from '../data/localisation.ts';
 import { formatRaceDate } from '../app/formatting.ts';
 
-const CARD_BACKGROUND = '#101014';
 
 /** Jolpica 的狀態字串 → 介面文字。未列的原樣顯示。 */
 const STATUS_LABEL: Record<string, string> = {
@@ -27,6 +27,8 @@ interface RacePageProps {
   season: string;
   weekends: WeekendView[];
   nextRound: number | null;
+  /** View Model 的 Next Session 種類；本頁只在該站是下一站時把它交給場次面板。 */
+  nextSessionKind: SessionKind | null;
   msUntilNext: number;
   timeZone: string;
   timeZoneLabel: string;
@@ -36,6 +38,7 @@ export const RacePage = ({
   season,
   weekends,
   nextRound,
+  nextSessionKind,
   msUntilNext,
   timeZone,
   timeZoneLabel,
@@ -56,10 +59,7 @@ export const RacePage = ({
   }
 
   const race = weekend.sessions.find((s) => s.kind === 'race');
-  const nextSessionKind =
-    weekend.round === nextRound
-      ? (weekend.sessions.find((s) => s.status !== 'finished')?.kind ?? null)
-      : null;
+  const panelNextKind = weekend.round === nextRound ? nextSessionKind : null;
 
   return (
     <motion.article className="race-detail" variants={container} initial="hidden" animate="shown">
@@ -110,7 +110,7 @@ export const RacePage = ({
           </motion.p>
           <SessionPanel
             weekend={weekend}
-            nextSessionKind={nextSessionKind}
+            nextSessionKind={panelNextKind}
             msUntilNext={msUntilNext}
             timeZone={timeZone}
             timeZoneLabel={timeZoneLabel}
@@ -127,10 +127,10 @@ export const RacePage = ({
  */
 const ResultRow = ({ result }: { result: ResultView }): JSX.Element => {
   const { driver, team } = result;
-  const accent = team.colour ?? '#8b8b96';
+  const accent = team.colour ?? NEUTRAL_ACCENT;
   const style = {
     '--team-colour': accent,
-    '--team-text': readableOn(accent, CARD_BACKGROUND),
+    '--team-text': readableOn(accent, SURFACE),
   } as React.CSSProperties;
   const statusLabel = STATUS_LABEL[result.status] ?? result.status;
   const outcome = result.classified ? (result.time ?? statusLabel) : statusLabel;

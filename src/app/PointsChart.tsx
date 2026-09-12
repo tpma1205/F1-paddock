@@ -26,6 +26,10 @@ const codeOf = (series: ProgressionSeries): string =>
 const nameOf = (series: ProgressionSeries): string =>
   localisedDriver(series.driver.id)?.zh ?? series.driver.familyName;
 
+/** 同隊第二位用虛線 —— 同色不同紋，identity 不靠顏色。 */
+const isDashed = (series: ProgressionSeries): boolean => series.teammateIndex === 1;
+const colourOf = (series: ProgressionSeries): string => series.team?.colour ?? 'var(--text-dim)';
+
 /**
  * 積分走勢圖：每位車手隨 Round 累積的積分。
  *
@@ -144,8 +148,8 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
               key={s.driver.id}
               className="chart__line"
               d={pathOf(s)}
-              stroke={s.team?.colour ?? 'var(--text-dim)'}
-              strokeDasharray={s.teammateIndex === 1 ? DASH : undefined}
+              stroke={colourOf(s)}
+              strokeDasharray={isDashed(s) ? DASH : undefined}
             />
           ))}
 
@@ -162,7 +166,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
               cx={x(n - 1)}
               cy={y(s.cumulative.at(-1) ?? 0)}
               r={4}
-              fill={s.team?.colour ?? 'var(--text-dim)'}
+              fill={colourOf(s)}
             />
           ))}
           {endLabels.map(({ series: s, anchorY, labelY, nudged }) => (
@@ -185,7 +189,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
                 cx={x(hover)}
                 cy={y(s.cumulative[hover] ?? 0)}
                 r={4}
-                fill={s.team?.colour ?? 'var(--text-dim)'}
+                fill={colourOf(s)}
               />
             ))}
         </svg>
@@ -207,7 +211,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
               <li key={s.driver.id}>
                 <span
                   className="chart__key"
-                  style={{ borderColor: s.team?.colour ?? 'var(--text-dim)', borderStyle: s.teammateIndex === 1 ? 'dashed' : 'solid' }}
+                  style={{ borderColor: colourOf(s), borderStyle: isDashed(s) ? 'dashed' : 'solid' }}
                 />
                 <strong>{value}</strong>
                 <span>{nameOf(s)}</span>
@@ -224,7 +228,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
           <li key={s.driver.id}>
             <span
               className="chart__key"
-              style={{ borderColor: s.team?.colour ?? 'var(--text-dim)', borderStyle: s.teammateIndex === 1 ? 'dashed' : 'solid' }}
+              style={{ borderColor: colourOf(s), borderStyle: isDashed(s) ? 'dashed' : 'solid' }}
             />
             {nameOf(s)}
           </li>

@@ -66,7 +66,7 @@ describe('換季', () => {
     expect(vm.teams).toHaveLength(11);
     // 走勢與亮點也跟著積分那一季
     expect(vm.progression.rounds).toHaveLength(13);
-    expect(vm.highlights.mostWins?.driver.id).toBe('antonelli');
+    expect(vm.highlights.mostWins?.holders[0]?.driver.id).toBe('antonelli');
   });
 
   it('下一季首站結束、有了積分之後，自動切回即時資料', () => {
@@ -118,10 +118,16 @@ describe('換季', () => {
  */
 describe('不寫死年份', () => {
   const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-  const SCAN = ['src/domain', 'src/app', 'src/pages', 'src/App.tsx', 'src/main.tsx', 'scripts'];
-  const ALLOWED = new Set(['src/app/teamAssets.ts']); // LOGO_ASSET_VERSION：CDN 資產目錄，非賽季
+  const SCAN = ['src/domain', 'src/app', 'src/pages', 'src/data', 'src/App.tsx', 'src/main.tsx', 'scripts'];
+  const ALLOWED = new Set([
+    'src/app/teamAssets.ts', // LOGO_ASSET_VERSION：CDN 資產目錄，非賽季
+    'src/data/circuitInfo.ts', // 單圈紀錄的年份：資料，非程式邏輯
+  ]);
+  // 資料目錄與 fixture 不是程式碼
+  const SKIP_DIRS = new Set(['src/data/__fixtures__', 'src/data/snapshots', 'src/data/circuits']);
 
   const walk = (relative: string): string[] => {
+    if (SKIP_DIRS.has(relative)) return [];
     const full = join(ROOT, relative);
     if (statSync(full).isFile()) return [relative];
     return readdirSync(full).flatMap((name) => walk(`${relative}/${name}`));

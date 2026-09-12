@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { SURFACE, NEUTRAL_ACCENT } from './tokens.ts';
 import { Link } from 'react-router';
 import { motion } from 'motion/react';
 import type { DriverView, TeamView } from '../domain/types.ts';
@@ -8,7 +9,6 @@ import { BilingualName } from './BilingualName.tsx';
 import { readableOn } from './colour.ts';
 import { localisedDriver, localisedTeam } from '../data/localisation.ts';
 
-const CARD_BACKGROUND = '#101014';
 const TOP_N = 5;
 
 interface StandingsSectionProps {
@@ -57,7 +57,7 @@ export const StandingsSection = ({
       <div className="standings__columns">
         <StandingsColumn title="車手" titleEn="Drivers" href="/drivers" variants={item}>
           {drivers.slice(0, TOP_N).map((entry) => {
-            const accent = entry.team?.colour ?? '#8b8b96';
+            const accent = entry.team?.colour ?? NEUTRAL_ACCENT;
             return (
               <StandingsRow
                 key={entry.driver.id}
@@ -80,7 +80,7 @@ export const StandingsSection = ({
               key={team.id}
               href={`/teams/${team.id}`}
               position={team.position}
-              accent={team.colour ?? '#8b8b96'}
+              accent={team.colour ?? NEUTRAL_ACCENT}
               canonical={team.name}
               localised={localisedTeam(team.id)}
               sub={`${team.wins} 勝`}
@@ -140,7 +140,7 @@ const StandingsRow = ({
 }: StandingsRowProps): JSX.Element => {
   const style = {
     '--team-colour': accent,
-    '--team-text': readableOn(accent, CARD_BACKGROUND),
+    '--team-text': readableOn(accent, SURFACE),
   } as React.CSSProperties;
 
   return (

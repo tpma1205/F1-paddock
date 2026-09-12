@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { GROUND, NEUTRAL_ACCENT } from '../app/tokens.ts';
 import { Link, useParams } from 'react-router';
 import { motion, type MotionStyle } from 'motion/react';
 import type { TeamView } from '../domain/types.ts';
@@ -11,7 +12,6 @@ import type { TeammateBattle } from '../domain/types.ts';
 import { readableOn } from '../app/colour.ts';
 import { localisedTeam } from '../data/localisation.ts';
 
-const PAGE_BACKGROUND = '#07070a';
 
 interface TeamPageProps {
   season: string;
@@ -36,11 +36,11 @@ export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element
     );
   }
 
-  const accent = team.colour ?? '#8b8b96';
+  const accent = team.colour ?? NEUTRAL_ACCENT;
   // motion 元件的 style 型別是 MotionStyle，自訂屬性需經此斷言。
   const style = {
     '--team-colour': accent,
-    '--team-text': readableOn(accent, PAGE_BACKGROUND),
+    '--team-text': readableOn(accent, GROUND),
   } as MotionStyle;
 
   return (

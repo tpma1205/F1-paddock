@@ -13,7 +13,7 @@ npm run dev       # http://localhost:5173/F1-paddock/
 ```
 
 ```bash
-npm test              # 202 個測試，不打網路
+npm test              # 227 個測試，不打網路
 npm run typecheck     # tsc --noEmit
 npm run build         # 型別檢查 → vite build → 為每個路由產生實體 HTML
 npm run preview       # 用靜態伺服器檢視 dist/

@@ -1,5 +1,6 @@
 import { indexOpenF1Drivers, type OpenF1DriverInfo, type RawOpenF1Driver } from './openf1.ts';
 import {
+  isPodium,
   sessionOrder,
   type DriverRef,
   type DriverStanding,
@@ -334,7 +335,7 @@ const tallyPodiums = (
   const tally = new Map<string, number>();
   for (const results of resultsByRound.values()) {
     for (const result of results) {
-      if (!result.classified || result.position > 3) continue;
+      if (!isPodium(result)) continue;
       tally.set(result.driverId, (tally.get(result.driverId) ?? 0) + 1);
     }
   }

@@ -1,5 +1,5 @@
 import {
-  SESSION_DURATION_MINUTES,
+  isPodium,
   type BattleSide,
   type CircuitView,
   type DriverRef,
@@ -56,14 +56,7 @@ const fallbackDriver = (id: string): DriverRef => ({
 
 const fallbackTeam = (id: string): TeamRef => ({ id, name: id, nationality: '', colour: null });
 
-const MINUTE_MS = 60_000;
-
-/**
- * Session 的結束時間 —— **由慣例時長推導，API 不提供**。
- * 見 SESSION_DURATION_MINUTES 的說明。
- */
-const endOf = (session: Session): number =>
-  Date.parse(session.startsAt) + SESSION_DURATION_MINUTES[session.kind] * MINUTE_MS;
+import { endOf, seasonFinished } from './season.ts';
 
 const statusOf = (session: Session, nowMs: number): SessionStatus => {
   if (endOf(session) <= nowMs) return 'finished';
@@ -96,8 +89,9 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): Wee
     circuit: weekend.circuit,
     sessions,
     raceStatus: race?.status ?? 'upcoming',
+    msUntilRace: race ? Math.max(0, Date.parse(race.startsAt) - nowMs) : 0,
     results,
-    podium: (results ?? []).filter((r) => r.classified && r.position <= 3).slice(0, 3),
+    podium: (results ?? []).filter(isPodium).slice(0, 3),
   };
 };
 
@@ -119,6 +113,7 @@ const buildTeams = (snapshot: Snapshot): TeamView[] => {
       position: standing.position,
       points: standing.points,
       wins: standing.wins,
+      podiums: standing.podiums,
     };
     driversByTeam.set(currentTeam.id, [...(driversByTeam.get(currentTeam.id) ?? []), summary]);
   }
@@ -224,7 +219,7 @@ const buildBattles = (snapshot: Snapshot, teams: TeamView[]): TeammateBattle[] =
       driver: entry.driver,
       points: entry.points,
       wins: entry.wins,
-      podiums: snapshot.driverStandings.find((s) => s.driver.id === entry.driver.id)?.podiums ?? null,
+      podiums: entry.podiums,
       qualifyingAhead: 0,
       raceAhead: 0,
     })) as [BattleSide, BattleSide];
@@ -233,19 +228,19 @@ const buildBattles = (snapshot: Snapshot, teams: TeamView[]): TeammateBattle[] =
     let raceContests = 0;
 
     for (const weekend of snapshot.weekends) {
-      const qa = weekend.qualifying?.find((q) => q.driverId === first.driver.id);
-      const qb = weekend.qualifying?.find((q) => q.driverId === second.driver.id);
-      if (qa && qb) {
+      const firstQualifying = weekend.qualifying?.find((q) => q.driverId === first.driver.id);
+      const secondQualifying = weekend.qualifying?.find((q) => q.driverId === second.driver.id);
+      if (firstQualifying && secondQualifying) {
         qualifyingContests += 1;
-        if (qa.position < qb.position) sides[0].qualifyingAhead += 1;
+        if (firstQualifying.position < secondQualifying.position) sides[0].qualifyingAhead += 1;
         else sides[1].qualifyingAhead += 1;
       }
 
-      const ra = weekend.results?.find((r) => r.driverId === first.driver.id && r.classified);
-      const rb = weekend.results?.find((r) => r.driverId === second.driver.id && r.classified);
-      if (ra && rb) {
+      const firstRace = weekend.results?.find((r) => r.driverId === first.driver.id && r.classified);
+      const secondRace = weekend.results?.find((r) => r.driverId === second.driver.id && r.classified);
+      if (firstRace && secondRace) {
         raceContests += 1;
-        if (ra.position < rb.position) sides[0].raceAhead += 1;
+        if (firstRace.position < secondRace.position) sides[0].raceAhead += 1;
         else sides[1].raceAhead += 1;
       }
     }
@@ -253,18 +248,26 @@ const buildBattles = (snapshot: Snapshot, teams: TeamView[]): TeammateBattle[] =
     return [{ teamId: team.id, a: sides[0], b: sides[1], qualifyingContests, raceContests }];
   });
 
-/** 從「車手 → 次數」取出最高者；沒有任何資料（全為 0）時為 null。 */
-const topOf = (counts: ReadonlyMap<string, number>, refs: RefIndex, teamOf: ReadonlyMap<string, TeamRef | null>): Highlight | null => {
-  let best: Highlight | null = null;
-  for (const [driverId, count] of counts) {
-    if (count <= 0) continue;
-    if (best === null || count > best.count) {
+/**
+ * 從「車手 → 次數」取出最高者 —— **平手時全部回傳**，不藏掉並列者。
+ * 沒有任何資料（全為 0）時為 null。
+ */
+const topOf = (
+  counts: ReadonlyMap<string, number>,
+  refs: RefIndex,
+  teamOf: ReadonlyMap<string, TeamRef | null>,
+): Highlight | null => {
+  const max = Math.max(0, ...counts.values());
+  if (max <= 0) return null;
+
+  const holders = [...counts]
+    .filter(([, count]) => count === max)
+    .flatMap(([driverId]) => {
       const driver = refs.drivers.get(driverId);
-      if (!driver) continue;
-      best = { driver, team: teamOf.get(driverId) ?? null, count };
-    }
-  }
-  return best;
+      return driver ? [{ driver, team: teamOf.get(driverId) ?? null }] : [];
+    });
+
+  return holders.length > 0 ? { holders, count: max } : null;
 };
 
 /**
@@ -295,10 +298,6 @@ const buildHighlights = (snapshot: Snapshot, refs: RefIndex): SeasonHighlights =
     mostRetirements: topOf(retirements, refs, teamOf),
   };
 };
-
-/** 該季所有場次都已結束。沒有任何場次的快照視為已結束（沒東西可等）。 */
-const seasonFinished = (snapshot: Snapshot, nowMs: number): boolean =>
-  snapshot.weekends.every((w) => w.sessions.every((s) => endOf(s) <= nowMs));
 
 const hasStandings = (snapshot: Snapshot): boolean => snapshot.driverStandings.length > 0;
 
@@ -345,7 +344,7 @@ export const buildViewModel = (snapshots: ReadonlyArray<Snapshot>, now: Date): V
   const weekends = schedule.weekends.map((weekend) => toWeekendView(weekend, nowMs, refs));
 
   const teams = buildTeams(standings);
-  const base = {
+  const shared = {
     season: schedule.season,
     standingsSeason: standings.season,
     standingsAreFinal: standings !== schedule || seasonFinished(standings, nowMs),
@@ -368,7 +367,7 @@ export const buildViewModel = (snapshots: ReadonlyArray<Snapshot>, now: Date): V
     if (!session) continue;
 
     return {
-      ...base,
+      ...shared,
       focusWeekend: weekend,
       nextSession: {
         weekend,
@@ -380,5 +379,5 @@ export const buildViewModel = (snapshots: ReadonlyArray<Snapshot>, now: Date): V
   }
 
   // 本季所有場次都已結束 —— 進入 Off-season。
-  return { ...base, focusWeekend: null, nextSession: null, isOffSeason: true };
+  return { ...shared, focusWeekend: null, nextSession: null, isOffSeason: true };
 };

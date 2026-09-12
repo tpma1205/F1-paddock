@@ -201,6 +201,13 @@ describe('buildViewModel', () => {
       // 馬德里正賽 09-13 13:00Z 起 120 分鐘
       expect(at('2026-09-13T14:00:00Z').weekends[13]?.raceStatus).toBe('live');
     });
+
+    it('每站帶距離正賽的毫秒數，已開始或已結束為 0 —— 賽程表不自己算時間', () => {
+      const vm = at('2026-09-13T12:00:00Z');
+      expect(vm.weekends[13]?.msUntilRace).toBe(60 * 60 * 1000);
+      expect(vm.weekends[12]?.msUntilRace).toBe(0);
+      expect(at('2026-09-13T14:00:00Z').weekends[13]?.msUntilRace).toBe(0);
+    });
   });
 
   describe('車隊', () => {
@@ -337,9 +344,18 @@ describe('buildViewModel', () => {
 
     it('最多勝與最多頒獎台都是 Antonelli', () => {
       expect(highlights.mostWins).toMatchObject({ count: 7 });
-      expect(highlights.mostWins?.driver.id).toBe('antonelli');
-      expect(highlights.mostPodiums?.driver.id).toBe('antonelli');
+      expect(highlights.mostWins?.holders.map((h) => h.driver.id)).toEqual(['antonelli']);
+      expect(highlights.mostPodiums?.holders[0]?.driver.id).toBe('antonelli');
       expect(highlights.mostPodiums?.count).toBe(11);
+    });
+
+    it('平手時全部並列者都在，不藏掉任何一位', () => {
+      const tied = structuredClone(snapshot);
+      // 讓前兩位的勝場相同
+      tied.driverStandings[1]!.wins = tied.driverStandings[0]!.wins;
+      const vm = buildViewModel([tied], new Date('2026-09-10T12:00:00Z'));
+      expect(vm.highlights.mostWins?.holders.map((h) => h.driver.id).sort()).toEqual(['antonelli', 'russell']);
+      expect(vm.highlights.mostWins?.count).toBe(7);
     });
 
     it('最多桿位由排位賽第一名統計', () => {

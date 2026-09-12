@@ -1,9 +1,9 @@
 import { useState, type JSX } from 'react';
+import { RAISED, NEUTRAL_ACCENT } from './tokens.ts';
 import type { DriverRef } from '../domain/types.ts';
 import { readableOn } from './colour.ts';
 import { driverMonogram, headshotAt } from './driverAssets.ts';
 
-const PLATE_BACKGROUND = '#17171d';
 
 interface DriverPhotoProps {
   driver: DriverRef;
@@ -20,13 +20,13 @@ interface DriverPhotoProps {
  */
 export const DriverPhoto = ({ driver, colour, size = 'card' }: DriverPhotoProps): JSX.Element => {
   const [failed, setFailed] = useState(false);
-  const accent = colour ?? '#8b8b96';
+  const accent = colour ?? NEUTRAL_ACCENT;
   const style = { '--team-colour': accent } as React.CSSProperties;
 
   if (!driver.headshotUrl || failed) {
     return (
       <span className={`driver-photo driver-photo--${size} driver-photo--plate`} style={style}>
-        <span style={{ color: readableOn(accent, PLATE_BACKGROUND) }}>{driverMonogram(driver)}</span>
+        <span style={{ color: readableOn(accent, RAISED) }}>{driverMonogram(driver)}</span>
       </span>
     );
   }

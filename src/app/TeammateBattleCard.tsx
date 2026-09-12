@@ -1,4 +1,5 @@
 import type { JSX } from 'react';
+import { NEUTRAL_ACCENT } from './tokens.ts';
 import type { BattleSide, TeammateBattle } from '../domain/types.ts';
 import { DriverPhoto } from './DriverPhoto.tsx';
 import { localisedDriver } from '../data/localisation.ts';
@@ -25,7 +26,7 @@ interface Row {
  * 的虛實線邏輯，identity 不靠顏色。
  */
 export const TeammateBattleCard = ({ battle, colour }: TeammateBattleCardProps): JSX.Element => {
-  const accent = colour ?? '#8b8b96';
+  const accent = colour ?? NEUTRAL_ACCENT;
   const style = { '--team-colour': accent } as React.CSSProperties;
 
   const rows: Row[] = [
