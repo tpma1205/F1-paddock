@@ -1,0 +1,2 @@
+# 全 repo 統一 LF，避免 Windows 的 core.autocrlf 在每次觸碰時來回轉換。
+* text=auto eol=lf
