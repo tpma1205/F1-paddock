@@ -19,12 +19,41 @@ import {
   type RawSprintResponse,
   type RawTeamStandingsResponse,
 } from '../src/data/jolpica.ts';
-import type { RawOpenF1Driver } from '../src/data/openf1.ts';
+import {
+  TIMED_KINDS,
+  carryForwardTimedResults,
+  matchOpenF1Session,
+  type RawOpenF1Driver,
+  type RawOpenF1Session,
+  type RawOpenF1SessionResult,
+} from '../src/data/openf1.ts';
+import { endOf } from '../src/domain/season.ts';
 import type { Snapshot } from '../src/domain/types.ts';
 
 const API = 'https://api.jolpi.ca/ergast/f1';
 const BASE = `${API}/current`;
-const OPENF1_DRIVERS = 'https://api.openf1.org/v1/drivers?session_key=latest';
+const OPENF1 = 'https://api.openf1.org/v1';
+const OPENF1_DRIVERS = `${OPENF1}/drivers?session_key=latest`;
+
+/**
+ * OpenF1 未認證的速率上限實測約每分鐘 30 次（400ms 間隔跑到第 20 次就 429）。
+ * 每次請求間隔 2.1 秒；整季全抓約 120 次要 4 分多鐘，但只有第一次 —— 之後
+ * 每週只補新場次（已有的沿用上一份快照）。
+ */
+const OPENF1_PAUSE_MS = 2100;
+const OPENF1_RETRY_AFTER_MS = 30_000;
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** 撞到 429 時等半分鐘再試一次；其他錯誤直接丟出。 */
+const getOpenF1Json = async <T>(url: string): Promise<T> => {
+  try {
+    return await getJson<T>(url);
+  } catch (error) {
+    if (!(error instanceof Error) || !error.message.endsWith('HTTP 429')) throw error;
+    await sleep(OPENF1_RETRY_AFTER_MS);
+    return getJson<T>(url);
+  }
+};
 
 /**
  * 快照以 season 為索引鍵存放（`snapshots/<season>.json`，見 docs/adr/0004）。
@@ -151,6 +180,67 @@ const getOpenF1Drivers = async (previous: Snapshot | null): Promise<RawOpenF1Dri
   }
 };
 
+/**
+ * 由 OpenF1 抓沒有 Jolpica 來源的場次 Result（FP1–FP3、衝刺排位）。
+ *
+ * 只抓**已結束且快照裡還沒有**的場次 —— 名次表定案後不會變，每週重抓全季
+ * 是浪費；上一份快照有的直接沿用（carryForwardTimedResults）。任何一步失敗
+ * 都只是少了那些場次，不影響快照產出。
+ */
+type OpenF1Sessions = NonNullable<Parameters<typeof normaliseSeason>[0]['openF1Sessions']>;
+
+const getOpenF1Sessions = async (
+  season: string,
+  weekends: Snapshot['weekends'],
+  previous: Snapshot | null,
+): Promise<OpenF1Sessions | undefined> => {
+  const nowMs = Date.now();
+  let sessions: RawOpenF1Session[];
+  try {
+    sessions = await getOpenF1Json<RawOpenF1Session[]>(`${OPENF1}/sessions?year=${season}`);
+  } catch (error) {
+    console.warn(`⚠ OpenF1 場次清單抓取失敗（${error instanceof Error ? error.message : String(error)}），練習賽結果沿用上一份快照。`);
+    return undefined;
+  }
+
+  const results: Record<number, RawOpenF1SessionResult[]> = {};
+  const drivers: Array<Pick<RawOpenF1Driver, 'driver_number' | 'name_acronym'>> = [];
+  const meetingsFetched = new Set<number>();
+  let fetched = 0;
+
+  for (const weekend of weekends) {
+    const already = previous?.weekends.find((w) => w.round === weekend.round);
+    for (const session of weekend.sessions) {
+      if (!TIMED_KINDS.has(session.kind) || endOf(session) > nowMs) continue;
+      if (already?.sessions.find((s) => s.kind === session.kind)?.result) continue; // 上一份已有，沿用
+
+      const key = matchOpenF1Session(session, sessions);
+      if (key === null) continue;
+      const meeting = sessions.find((s) => s.session_key === key)?.meeting_key;
+
+      try {
+        if (meeting !== undefined && !meetingsFetched.has(meeting)) {
+          // 每個 meeting 抓一次車手清單：FP1 的青年車手只在這裡有車號 ↔ 縮寫
+          drivers.push(...(await getOpenF1Json<RawOpenF1Driver[]>(`${OPENF1}/drivers?meeting_key=${meeting}`)));
+          meetingsFetched.add(meeting);
+          await sleep(OPENF1_PAUSE_MS);
+        }
+        const rows = await getOpenF1Json<RawOpenF1SessionResult[]>(`${OPENF1}/session_result?session_key=${key}`);
+        if (rows.length > 0) results[key] = rows;
+        fetched += 1;
+        await sleep(OPENF1_PAUSE_MS);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        // 404 = OpenF1 尚無該場次資料，不是故障；其他錯誤（401 直播封鎖）也只記一筆
+        console.warn(`⚠ OpenF1 第 ${weekend.round} 站 ${session.kind} 結果抓取失敗（${message}）`);
+      }
+    }
+  }
+
+  console.log(`  OpenF1：新抓 ${fetched} 個場次的結果`);
+  return { sessions, results, drivers };
+};
+
 const main = async (): Promise<void> => {
   try {
     // 循序而非平行 —— Jolpica 是免費且由志工維護的服務，抓取應保持節制。
@@ -161,7 +251,8 @@ const main = async (): Promise<void> => {
     const teamStandings = await getJson<RawTeamStandingsResponse>(
       `${BASE}/constructorstandings/?format=json&limit=30`,
     );
-    const openF1Drivers = await getOpenF1Drivers(loadExistingSnapshot());
+    const previous = loadExistingSnapshot();
+    const openF1Drivers = await getOpenF1Drivers(previous);
 
     // 整季賽果／衝刺賽／排位賽分頁抓取：Jolpica 把 limit 上限鎖在 100，一站
     // 22 筆，13 站約 3 頁 —— 仍遠好過逐站抓。同一站可能跨頁，由 normalise 依
@@ -171,24 +262,25 @@ const main = async (): Promise<void> => {
     const sprints = await getAllPages<RawSprintResponse>('sprint');
     const qualifying = await getAllPages<RawQualifyingResponse>('qualifying');
 
-    const snapshot = normaliseSeason({
-      races,
-      driverStandings,
-      teamStandings,
-      openF1Drivers,
-      results,
-      sprints,
-      qualifying,
-      fetchedAt: new Date().toISOString(),
-    });
+    const fetchedAt = new Date().toISOString();
+    const jolpicaInput = { races, driverStandings, teamStandings, openF1Drivers, results, sprints, qualifying, fetchedAt };
+
+    // 先用 Jolpica 建出賽程，才知道要向 OpenF1 要哪些場次；再帶著場次結果建一次
+    const provisional = normaliseSeason(jolpicaInput);
+    const openF1Sessions = await getOpenF1Sessions(provisional.season, provisional.weekends, previous);
+    const snapshot = carryForwardTimedResults(
+      normaliseSeason(openF1Sessions ? { ...jolpicaInput, openF1Sessions } : jolpicaInput),
+      previous,
+    );
 
     mkdirSync(OUTPUT_DIR, { recursive: true });
     writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
     await fetchUpcomingSeason(snapshot.season);
     const coloured = snapshot.teamStandings.filter((s) => s.team.colour !== null).length;
     const withResults = snapshot.weekends.filter((w) => w.results !== null).length;
+    const timedSessions = snapshot.weekends.flatMap((w) => w.sessions).filter((s) => s.result !== null).length;
     console.log(
-      `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站、${withResults} 站有賽果、${coloured}/${snapshot.teamStandings.length} 隊有代表色`,
+      `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站、${withResults} 站有賽果、${timedSessions} 個練習賽／衝刺排位有結果、${coloured}/${snapshot.teamStandings.length} 隊有代表色`,
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

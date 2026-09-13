@@ -47,10 +47,31 @@ const SESSION_ORDER: Record<SessionKind, number> = {
 
 export const sessionOrder = (kind: SessionKind): number => SESSION_ORDER[kind];
 
+/**
+ * 沒有 Jolpica 來源的場次（FP1–FP3、衝刺排位）的 Result，來自 OpenF1，
+ * 以 Best Lap 排名。時間一律毫秒整數，格式化留給 View Model。
+ */
+export interface TimedResult {
+  /** 對不回 Jolpica 車手（例如 FP1 的青年車手）時為 null，車號仍保留。 */
+  driverId: string | null;
+  driverNumber: number;
+  position: number;
+  /** 沒跑出計時圈（DNS、故障）為 null。 */
+  bestLapMs: number | null;
+  /** 與第一名 Best Lap 的差距；第一名為 0，無成績為 null。 */
+  gapMs: number | null;
+  laps: number;
+}
+
 export interface Session {
   kind: SessionKind;
   /** ISO 8601 UTC 字串。 */
   startsAt: string;
+  /**
+   * 只有 FP1–FP3 與衝刺排位會有值（來自 OpenF1）；正賽／衝刺賽／排位賽的
+   * Result 在 RaceWeekend 層，這裡一律 null。尚未取得也是 null。
+   */
+  result: TimedResult[] | null;
 }
 
 export interface Circuit {
@@ -174,12 +195,38 @@ export interface Snapshot {
 
 export type SessionStatus = 'finished' | 'live' | 'upcoming';
 
+/** TimedResult + 解析後的車手與車隊、格式化好的時間。 */
+export interface TimedResultView {
+  position: number;
+  driverNumber: number;
+  driver: DriverRef | null;
+  team: TeamRef | null;
+  /** `1:23.008`；無成績為 null。 */
+  bestLap: string | null;
+  /** `+0.442`；第一名或無成績為空字串。 */
+  gap: string;
+  laps: number;
+}
+
+/** 已結束場次的第一名 —— 場次面板用，不進單站頁就知道誰最快。 */
+export interface SessionLeader {
+  /** 車手縮寫，對不到車手時是車號。 */
+  code: string;
+  driver: DriverRef | null;
+  /** 練習賽與排位賽為 Best Lap；正賽與衝刺賽為 null（沒有單一時間可比）。 */
+  time: string | null;
+}
+
 export interface SessionView {
   kind: SessionKind;
   startsAt: string;
   /** 由 startsAt 加上慣例時長推導，非 API 提供。 */
   endsAt: string;
   status: SessionStatus;
+  /** FP1–FP3 與衝刺排位的名次表；其他場次或尚未取得為 null。 */
+  result: TimedResultView[] | null;
+  /** 任何已有 Result 的場次都有；未結束或沒有資料為 null。 */
+  leader: SessionLeader | null;
 }
 
 /** 賽果 + 解析後的車手與車隊參照。 */

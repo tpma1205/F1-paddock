@@ -492,6 +492,34 @@ body {
   font-weight: 600;
 }
 
+/* 已結束場次的第一名 —— 縮寫用顯示字型，時間等寬數字 */
+.session__leader {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  white-space: nowrap;
+}
+
+.session__leader-pos {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+
+.session__leader-code {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.session__leader-time {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
 /* Next Session —— 浮起、紅色標籤、左緣紅條 */
 .session--next,
 .session--live {

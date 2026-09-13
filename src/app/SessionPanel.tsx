@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import type { JSX } from 'react';
-import type { SessionKind, SessionView, WeekendView } from '../domain/types.ts';
+import type { SessionKind, SessionLeader, SessionView, WeekendView } from '../domain/types.ts';
 import { Flag } from './Flag.tsx';
 import { BilingualName } from './BilingualName.tsx';
 import { localisedCircuit, localisedRaceWeekend } from '../data/localisation.ts';
@@ -114,8 +114,20 @@ const SessionRow = ({ session, countdownMs, timeZone, variants }: SessionRowProp
             即將登場 · 倒數 <strong>{formatCompactCountdown(countdownMs)}</strong>
           </>
         )}
-        {session.status === 'finished' && '已結束'}
+        {session.status === 'finished' && (session.leader ? <Leader leader={session.leader} /> : '已結束')}
       </span>
     </motion.li>
   );
 };
+
+/**
+ * 已結束場次的第一名：「P1 LEC · 1:23.008」。正賽與衝刺賽沒有單一時間，只有縮寫。
+ * 顏色用該車手的車隊代表色作字色 —— 是內容身分，不是介面色。
+ */
+const Leader = ({ leader }: { leader: SessionLeader }): JSX.Element => (
+  <span className="session__leader">
+    <span className="session__leader-pos">P1</span>
+    <span className="session__leader-code">{leader.code}</span>
+    {leader.time && <span className="session__leader-time">{leader.time}</span>}
+  </span>
+);

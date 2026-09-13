@@ -319,7 +319,7 @@ describe('normaliseSeason 的降級行為', () => {
     const sessions = snapshot.weekends[0]?.sessions;
 
     expect(sessions).toHaveLength(1);
-    expect(sessions?.[0]).toEqual({ kind: 'race', startsAt: '2026-03-08T00:00:00.000Z' });
+    expect(sessions?.[0]).toEqual({ kind: 'race', startsAt: '2026-03-08T00:00:00.000Z', result: null });
   });
 
   it.each([

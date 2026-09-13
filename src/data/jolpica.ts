@@ -1,4 +1,14 @@
-import { indexOpenF1Drivers, type OpenF1DriverInfo, type RawOpenF1Driver } from './openf1.ts';
+import {
+  TIMED_KINDS,
+  indexDriverNumbers,
+  indexOpenF1Drivers,
+  matchOpenF1Session,
+  toTimedResults,
+  type OpenF1DriverInfo,
+  type RawOpenF1Driver,
+  type RawOpenF1Session,
+  type RawOpenF1SessionResult,
+} from './openf1.ts';
 import {
   isPodium,
   sessionOrder,
@@ -187,11 +197,11 @@ const toSessions = (race: RawRace): Session[] => {
     const slot = race[field];
     if (!slot || typeof slot !== 'object') continue;
     const startsAt = toIso(slot as RawSessionTime);
-    if (startsAt) sessions.push({ kind, startsAt });
+    if (startsAt) sessions.push({ kind, startsAt, result: null });
   }
 
   const raceStartsAt = toIso(race) ?? new Date(`${race.date}T00:00:00Z`).toISOString();
-  sessions.push({ kind: 'race', startsAt: raceStartsAt });
+  sessions.push({ kind: 'race', startsAt: raceStartsAt, result: null });
 
   return sessions.sort(
     (a, b) =>
@@ -382,6 +392,29 @@ const assertValidSeason = (season: string): string => {
   return season;
 };
 
+/**
+ * 把 OpenF1 的名次表掛到對應的 Session 上（就地修改剛建好的 weekends）。
+ * 只處理 TIMED_KINDS；對不到 session_key 或沒抓到的場次維持 null。
+ */
+const attachTimedResults = (
+  weekends: RaceWeekend[],
+  standings: ReadonlyArray<RawDriverStanding>,
+  openF1: NonNullable<NormaliseInput['openF1Sessions']>,
+): void => {
+  const numberToCode = indexDriverNumbers(openF1.drivers);
+  const codeToDriverId = new Map(
+    standings.flatMap((s) => (s.Driver.code ? [[s.Driver.code, s.Driver.driverId] as const] : [])),
+  );
+  for (const weekend of weekends) {
+    for (const session of weekend.sessions) {
+      if (!TIMED_KINDS.has(session.kind)) continue;
+      const key = matchOpenF1Session(session, openF1.sessions);
+      const rows = key === null ? undefined : openF1.results[key];
+      if (rows) session.result = toTimedResults(rows, numberToCode, codeToDriverId);
+    }
+  }
+};
+
 export interface NormaliseInput {
   races: RawRacesResponse;
   driverStandings: RawDriverStandingsResponse;
@@ -394,6 +427,15 @@ export interface NormaliseInput {
   sprints?: ReadonlyArray<RawSprintResponse>;
   /** 整季排位賽的分頁回應；可省略。 */
   qualifying?: ReadonlyArray<RawQualifyingResponse>;
+  /**
+   * OpenF1 的場次清單、各場次的名次表（以 session_key 為鍵；抓不到的場次不放）
+   * 與車手清單（跨 meeting，供車號對縮寫）；可省略，屆時所有 Session.result 為 null。
+   */
+  openF1Sessions?: {
+    sessions: ReadonlyArray<RawOpenF1Session>;
+    results: Readonly<Record<number, ReadonlyArray<RawOpenF1SessionResult>>>;
+    drivers: ReadonlyArray<Pick<RawOpenF1Driver, 'driver_number' | 'name_acronym'>>;
+  };
   fetchedAt: string;
 }
 
@@ -411,6 +453,7 @@ export const normaliseSeason = ({
   results,
   sprints,
   qualifying,
+  openF1Sessions,
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
@@ -427,11 +470,14 @@ export const normaliseSeason = ({
   const podiums = tallyPodiums(perRound.results);
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
+  const weekends = raceTable.Races.map(toWeekend(perRound)).sort((a, b) => a.round - b.round);
+  if (openF1Sessions) attachTimedResults(weekends, rawDrivers, openF1Sessions);
+
   return {
     season: assertValidSeason(raceTable.season),
     completedRound: Number.isFinite(completedRound) && completedRound > 0 ? completedRound : null,
     fetchedAt,
-    weekends: raceTable.Races.map(toWeekend(perRound)).sort((a, b) => a.round - b.round),
+    weekends,
     driverStandings: rawDrivers
       .map(toDriverStanding(colours, openF1, podiums))
       .sort((a, b) => a.position - b.position),
