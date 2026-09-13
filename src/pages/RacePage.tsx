@@ -22,7 +22,7 @@ import { Flag } from '../app/Flag.tsx';
 import { SessionPanel } from '../app/SessionPanel.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedCircuit, localisedDriver, localisedRaceWeekend, localisedTeam } from '../data/localisation.ts';
-import { SESSION_LABEL, formatRaceDate } from '../app/formatting.ts';
+import { SESSION_SHORT_LABEL, formatRaceDate } from '../app/formatting.ts';
 
 
 /** Jolpica 的狀態字串 → 介面文字。未列的原樣顯示。 */
@@ -146,7 +146,7 @@ const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultPr
       if (!rows) return NOT_YET;
       return (
         <>
-          <h2 className="section-title">{SESSION_LABEL[session.kind]}結果</h2>
+          <h2 className="section-title">{SESSION_SHORT_LABEL[session.kind]} 賽果</h2>
           <ol className="results">
             {rows.map((result) => (
               <ResultRow key={result.driver.id} result={result} />
@@ -176,7 +176,9 @@ const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultPr
       if (!timed || timed.length === 0) return NOT_YET;
       return (
         <>
-          <h2 className="section-title">{SESSION_LABEL[session.kind]}結果</h2>
+          <h2 className="section-title">
+            {session.kind === 'sprintQualifying' ? '衝刺排位結果' : `${SESSION_SHORT_LABEL[session.kind]} 練習結果`}
+          </h2>
           <ol className="results results--timed">
             {timed.map((row) => (
               <TimedRow key={`${row.driverNumber}`} row={row} />
@@ -196,7 +198,6 @@ const teamStyle = (colour: string | null): React.CSSProperties => {
 /** 排位賽一列：名次／車手／Q1／Q2／Q3。被淘汰的節次以「—」呈現。 */
 const QualifyingRow = ({ row }: { row: QualifyingView }): JSX.Element => {
   const { driver, team } = row;
-  const best = row.q3 ?? row.q2 ?? row.q1;
   return (
     <li className="result" style={teamStyle(team.colour)}>
       <details className="result__details">
@@ -220,7 +221,7 @@ const QualifyingRow = ({ row }: { row: QualifyingView }): JSX.Element => {
             </span>
           ))}
           <span className="result__points">
-            <span className="stat__value stat__value--time">{best ?? '—'}</span>
+            <span className="stat__value stat__value--time">{row.best ?? '—'}</span>
             <span className="stat__label">最快圈</span>
           </span>
         </summary>
@@ -283,7 +284,7 @@ const TimedRow = ({ row }: { row: TimedResultView }): JSX.Element => {
             {row.laps}
           </span>
           <span className="result__points">
-            <span className="stat__value stat__value--time">{row.bestLap ?? '無成績'}</span>
+            <span className="stat__value stat__value--time">{row.bestLap ?? '無計時'}</span>
             <span className="stat__label">最快圈</span>
           </span>
         </summary>

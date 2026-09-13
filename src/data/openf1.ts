@@ -141,8 +141,11 @@ const gapOf = (gap: RawOpenF1SessionResult['gap_to_leader']): number | null => {
  * OpenF1 名次表 → TimedResult。
  *
  * 車手對應走 **OpenF1 自己的車號 ↔ 縮寫表**，再以縮寫對回 Jolpica 車手。
- * 不可用 Jolpica 的 permanentNumber：冠軍掛 1 號、Verstappen 改用 3 號，
- * permanentNumber 都對不上。
+ * 不用 Jolpica 的 permanentNumber：只跑 FP1 的青年車手不在積分榜上，
+ * 只有 OpenF1 的車號表認得他們；而積分榜的號碼也不保證與賽場同步（冠軍掛 1 號）。
+ *
+ * 沒跑出計時圈（DNS、DNF、position 為 null）的列**保留**、Best Lap 與 Gap 為
+ * null、排在最後 —— 畫面顯示「無計時」而不是整列消失。
  */
 export const toTimedResults = (
   rows: ReadonlyArray<RawOpenF1SessionResult>,
@@ -150,20 +153,21 @@ export const toTimedResults = (
   codeToDriverId: ReadonlyMap<string, string>,
 ): TimedResult[] =>
   rows
-    .flatMap((row) => (row.position === null ? [] : [{ ...row, position: row.position }]))
     .map((row) => {
       const code = numberToCode.get(row.driver_number);
-      const bestLapMs = row.dns ? null : bestOf(row.duration);
+      const bestLapMs = row.dns || row.dnf || row.position === null ? null : bestOf(row.duration);
       return {
         driverId: (code && codeToDriverId.get(code)) ?? null,
         driverNumber: row.driver_number,
-        position: row.position,
+        position: row.position ?? Number.POSITIVE_INFINITY,
         bestLapMs,
         gapMs: bestLapMs === null ? null : gapOf(row.gap_to_leader),
         laps: row.number_of_laps ?? 0,
       };
     })
-    .sort((a, b) => a.position - b.position);
+    .sort((a, b) => a.position - b.position)
+    // 沒名次的列排在最後，並補上連續的名次讓表格仍能顯示序號
+    .map((row, i) => ({ ...row, position: Number.isFinite(row.position) ? row.position : i + 1 }));
 
 /** OpenF1 的車手清單（可跨多個 meeting）→ 車號 ↔ 縮寫。先到先得。 */
 export const indexDriverNumbers = (

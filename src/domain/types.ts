@@ -58,7 +58,7 @@ export interface TimedResult {
   position: number;
   /** 沒跑出計時圈（DNS、故障）為 null。 */
   bestLapMs: number | null;
-  /** 與第一名 Best Lap 的差距；第一名為 0，無成績為 null。 */
+  /** 與第一名 Best Lap 的差距；第一名為 0，無計時為 null。 */
   gapMs: number | null;
   laps: number;
 }
@@ -219,9 +219,9 @@ export interface TimedResultView {
   driverNumber: number;
   driver: DriverRef | null;
   team: TeamRef | null;
-  /** `1:23.008`；無成績為 null。 */
+  /** `1:23.008`；無計時為 null。 */
   bestLap: string | null;
-  /** `+0.442`；第一名或無成績為空字串。 */
+  /** `+0.442`；第一名或無計時為空字串。 */
   gap: string;
   laps: number;
 }
@@ -253,6 +253,8 @@ export interface QualifyingView {
   q1: string | null;
   q2: string | null;
   q3: string | null;
+  /** 跑到哪一節就是哪一節的時間；三節都沒時間為 null。 */
+  best: string | null;
 }
 
 /** 賽果 + 解析後的車手與車隊參照。 */
@@ -308,7 +310,11 @@ export interface DriverView {
   podiums: number | null;
   /** 以注入的「現在時間」算出的足歲；沒有生日為 null。 */
   age: number | null;
-  /** F1 第 N 季（含積分那一季）；沒有出道年為 null。跨年後自動 +1。 */
+  /**
+   * F1 第 N 季，**以積分那一季計**（standingsSeason）：跨年後新季還沒有積分、
+   * 畫面仍顯示上一季最終榜時，資歷不會提前 +1，避免「2026 最終榜」旁寫著第 3 季。
+   * 沒有出道年為 null。
+   */
   seasonNumber: number | null;
   /** 第 1 季 —— 畫面顯示「本季出道」而非「YYYY 出道」。 */
   isRookie: boolean;

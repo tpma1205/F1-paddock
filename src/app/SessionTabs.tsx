@@ -18,9 +18,9 @@ interface SessionTabsProps {
 /**
  * 單站頁的場次分頁籤：正賽｜排位賽｜FP3｜FP2｜FP1。
  *
- * 預設籤由 View Model 的 latestFinishedSession 決定，元件不自己找。未開始的
- * 場次籤停用並在面板標示開始時間。切籤**不改網址** —— 一站一個網址（ADR-0002）。
- * 鍵盤：左右鍵在可用的籤之間移動。
+ * 預設籤由 View Model 的 latestFinishedSession 決定，元件不自己找。未結束的
+ * 場次籤**停用**（滑鼠與鍵盤一致：點不到、方向鍵也跳過）並在籤上標開始時間。
+ * 切籤**不改網址** —— 一站一個網址（ADR-0002）。
  */
 export const SessionTabs = ({ weekend, timeZone, renderPanel }: SessionTabsProps): JSX.Element => {
   const tabs = TAB_ORDER.flatMap((kind) => weekend.sessions.filter((s) => s.kind === kind));
@@ -57,13 +57,17 @@ export const SessionTabs = ({ weekend, timeZone, renderPanel }: SessionTabsProps
               id={`${baseId}-tab-${tab.kind}`}
               aria-selected={isSelected}
               aria-controls={`${baseId}-panel`}
-              aria-disabled={disabled || undefined}
+              disabled={disabled}
               tabIndex={isSelected ? 0 : -1}
               className={`tabs__tab ${disabled ? 'tabs__tab--pending' : ''}`}
               onClick={() => setSelected(tab.kind)}
-              title={disabled ? `${formatSessionDay(tab.startsAt, timeZone)} ${formatSessionClock(tab.startsAt, timeZone)}` : undefined}
             >
               {SESSION_SHORT_LABEL[tab.kind]}
+              {disabled && (
+                <span className="tabs__when">
+                  {formatSessionDay(tab.startsAt, timeZone)} {formatSessionClock(tab.startsAt, timeZone)}
+                </span>
+              )}
             </button>
           );
         })}

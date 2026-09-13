@@ -68,16 +68,21 @@ describe('toTimedResults —— OpenF1 名次表 → TimedResult', () => {
     expect(rows[0]).toMatchObject({ driverNumber: 99, driverId: null });
   });
 
-  it('沒有時間（duration 為 null）或 DNS 的車手：bestLapMs 與 gapMs 為 null', () => {
+  it('DNS、DNF 或沒名次的車手：列保留、bestLapMs 與 gapMs 為 null、排在最後', () => {
     const rows = toTimedResults(
       [
+        { position: null, driver_number: 12, number_of_laps: 2, dnf: false, dns: false, dsq: false, duration: null, gap_to_leader: null },
         { position: 1, driver_number: 16, number_of_laps: 10, dnf: false, dns: false, dsq: false, duration: 83.008, gap_to_leader: 0 },
         { position: 2, driver_number: 1, number_of_laps: 0, dnf: false, dns: true, dsq: false, duration: null, gap_to_leader: null },
+        { position: 3, driver_number: 63, number_of_laps: 5, dnf: true, dns: false, dsq: false, duration: 84.5, gap_to_leader: 1.5 },
       ],
       numberToCode,
       codeToDriverId,
     );
+    expect(rows.map((r) => r.driverNumber)).toEqual([16, 1, 63, 12]);
     expect(rows[1]).toMatchObject({ bestLapMs: null, gapMs: null, laps: 0 });
+    expect(rows[2]).toMatchObject({ bestLapMs: null, gapMs: null }); // DNF 的殘留時間不算
+    expect(rows[3]).toMatchObject({ position: 4, bestLapMs: null, driverNumber: 12 });
   });
 
   it('衝刺排位：duration 是三節陣列，取最快一節；差距取最後參與那一節', () => {

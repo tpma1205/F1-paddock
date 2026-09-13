@@ -157,8 +157,9 @@ body {
   overflow: hidden;
 }
 
+/* ol 是 block、li 是 inline —— text-overflow 只對 block 容器裡的行內內容生效，flex 不行 */
 .breadcrumb__list {
-  display: flex;
+  display: block;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -169,7 +170,6 @@ body {
 
 .breadcrumb__item {
   display: inline;
-  min-width: 0;
 }
 
 .breadcrumb__item + .breadcrumb__item::before {
@@ -1905,9 +1905,23 @@ body {
   border-bottom-color: var(--f1-red);
 }
 
-/* 尚未舉行的場次：淡化，仍可點以看到開始時間 */
+/* 尚未舉行的場次：停用、淡化，籤上直接標開始時間 */
 .tabs__tab--pending {
   color: var(--text-faint);
+  cursor: default;
+}
+
+.tabs__tab:disabled:hover {
+  color: var(--text-faint);
+}
+
+.tabs__when {
+  display: block;
+  margin-top: 0.1rem;
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 0.6875rem;
+  letter-spacing: 0;
 }
 
 .tabs__tab:focus-visible {

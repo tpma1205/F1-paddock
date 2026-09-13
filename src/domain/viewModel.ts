@@ -28,24 +28,19 @@ import {
 interface RefIndex {
   drivers: ReadonlyMap<string, DriverRef>;
   teams: ReadonlyMap<string, TeamRef>;
-  /** 車手的當前車隊（賽季中轉隊者取最後一支）。 */
-  teamOfDriver: ReadonlyMap<string, TeamRef>;
 }
 
 const indexRefs = (snapshot: Snapshot): RefIndex => {
   const drivers = new Map<string, DriverRef>();
   const teams = new Map<string, TeamRef>();
-  const teamOfDriver = new Map<string, TeamRef>();
 
   for (const standing of snapshot.driverStandings) {
     drivers.set(standing.driver.id, standing.driver);
     for (const team of standing.teams) teams.set(team.id, team);
-    const current = standing.teams.at(-1);
-    if (current) teamOfDriver.set(standing.driver.id, current);
   }
   for (const standing of snapshot.teamStandings) teams.set(standing.team.id, standing.team);
 
-  return { drivers, teams, teamOfDriver };
+  return { drivers, teams };
 };
 
 /**
@@ -158,7 +153,7 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): Wee
   });
   const results = weekend.results?.map(resolve) ?? null;
   const sprintResults = weekend.sprintResults?.map(resolve) ?? null;
-  const qualifying = weekend.qualifying?.map(resolve) ?? null;
+  const qualifying = weekend.qualifying?.map((q) => ({ ...resolve(q), best: qualifyingBest(q) })) ?? null;
 
   // sessions 依時間排序，最後一個已結束的就是最新的
   const latestFinished = [...sessions].reverse().find((s) => s.status === 'finished');
