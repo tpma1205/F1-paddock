@@ -9,6 +9,9 @@ import { TrackMap } from '../app/TrackMap.tsx';
 import { circuitOutlineFor } from '../data/circuits.ts';
 import { circuitInfoFor } from '../data/circuitInfo.ts';
 import { localisedCircuit, localisedRaceWeekend } from '../data/localisation.ts';
+import { circuitProfile } from '../data/profiles.ts';
+import { raceDistanceKm } from '../domain/circuitStats.ts';
+import { ProfileSection } from '../app/ProfileSection.tsx';
 
 interface CircuitPageProps {
   season: string;
@@ -38,6 +41,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
   const outline = circuitOutlineFor(circuit.id);
   const info = circuitInfoFor(circuit.id);
   const lapRecord = info?.lapRecord ?? null;
+  const distance = raceDistanceKm(outline?.lengthMetres ?? null, info?.laps ?? null);
 
   return (
     <motion.article className="circuit-detail" variants={container} initial="hidden" animate="shown">
@@ -95,6 +99,12 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
             <span className="stat__label">正賽圈數</span>
           </li>
         )}
+        {distance !== null && (
+          <li className="stat stat--large">
+            <span className="stat__value">{distance.toFixed(1)} km</span>
+            <span className="stat__label">正賽總里程</span>
+          </li>
+        )}
         {outline?.altitudeMetres != null && (
           <li className="stat stat--large">
             <span className="stat__value">{outline.altitudeMetres} m</span>
@@ -102,6 +112,8 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
           </li>
         )}
       </motion.ul>
+
+      <ProfileSection intro={circuitProfile(circuit.id)?.intro ?? null} variants={item} />
 
       <motion.dl className="circuit-detail__facts" variants={item}>
         <div>
