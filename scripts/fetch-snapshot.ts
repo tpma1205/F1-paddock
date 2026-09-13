@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import {
   normaliseSeason,
   normaliseTimedResults,
+  type Debuts,
   type OpenF1SessionsInput,
   type RawDriverStandingsResponse,
   type RawQualifyingResponse,
@@ -43,6 +44,8 @@ const OPENF1_DRIVERS = `${OPENF1}/drivers?session_key=latest`;
  * 每週只補新場次（已有的沿用上一份快照）。
  */
 const OPENF1_PAUSE_MS = 2100;
+/** Jolpica 的節制：每秒約 3 次以內。 */
+const JOLPICA_PAUSE_MS = 350;
 const OPENF1_RETRY_AFTER_MS = 30_000;
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -247,6 +250,45 @@ const getOpenF1Sessions = async (
   return { sessions, results, drivers };
 };
 
+/**
+ * 各車手的出道球季：Jolpica「第一筆正賽賽果」的 season（`results?limit=1`
+ * 預設由舊到新）。**不用 `/drivers/{id}/seasons`** —— 它把只跑 FP1 的年份也算
+ * 進去，Antonelli 會變成 2024 而非 2025。
+ *
+ * 出道年不會變，上一份快照有的直接沿用；只對新面孔發請求。失敗的車手為
+ * null，畫面隱藏該列。
+ */
+const getDebuts = async (
+  standings: RawDriverStandingsResponse,
+  previous: Snapshot | null,
+): Promise<Debuts> => {
+  const known = new Map(
+    (previous?.driverStandings ?? []).flatMap((s) =>
+      s.driver.debutSeason ? [[s.driver.id, s.driver.debutSeason] as const] : [],
+    ),
+  );
+  const debuts: Record<string, string | null> = {};
+  let fetched = 0;
+  for (const { Driver } of standings.MRData.StandingsTable.StandingsLists[0]?.DriverStandings ?? []) {
+    const cached = known.get(Driver.driverId);
+    if (cached) {
+      debuts[Driver.driverId] = cached;
+      continue;
+    }
+    try {
+      const page = await getJson<RawResultsResponse>(`${API}/drivers/${Driver.driverId}/results.json?limit=1`);
+      debuts[Driver.driverId] = page.MRData.RaceTable.Races[0]?.season ?? null;
+      fetched += 1;
+      await sleep(JOLPICA_PAUSE_MS);
+    } catch (error) {
+      console.warn(`⚠ ${Driver.driverId} 的出道年抓取失敗（${error instanceof Error ? error.message : String(error)}）`);
+      debuts[Driver.driverId] = null;
+    }
+  }
+  if (fetched > 0) console.log(`  Jolpica：新抓 ${fetched} 位車手的出道年`);
+  return debuts;
+};
+
 const main = async (): Promise<void> => {
   try {
     // 循序而非平行 —— Jolpica 是免費且由志工維護的服務，抓取應保持節制。
@@ -259,6 +301,7 @@ const main = async (): Promise<void> => {
     );
     const previous = loadExistingSnapshot();
     const openF1Drivers = await getOpenF1Drivers(previous);
+    const debuts = await getDebuts(driverStandings, previous);
 
     // 整季賽果／衝刺賽／排位賽分頁抓取：Jolpica 把 limit 上限鎖在 100，一站
     // 22 筆，13 站約 3 頁 —— 仍遠好過逐站抓。同一站可能跨頁，由 normalise 依
@@ -269,7 +312,7 @@ const main = async (): Promise<void> => {
     const qualifying = await getAllPages<RawQualifyingResponse>('qualifying');
 
     const fetchedAt = new Date().toISOString();
-    const jolpicaInput = { races, driverStandings, teamStandings, openF1Drivers, results, sprints, qualifying, fetchedAt };
+    const jolpicaInput = { races, driverStandings, teamStandings, openF1Drivers, results, sprints, qualifying, debuts, fetchedAt };
 
     // 先用 Jolpica 建出賽程，才知道要向 OpenF1 要哪些場次；再帶著 sidecar 的摘要建一次
     const provisional = normaliseSeason(jolpicaInput);

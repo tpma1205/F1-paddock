@@ -4,11 +4,11 @@
 
 **Blocked by:** None — can start immediately（與 03 都動抓取腳本與 Snapshot 型別，建議在 03 之後依序做）
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 抓取：Jolpica `dateOfBirth` 進 DriverRef
-- [ ] 抓取：每位車手一次 Jolpica `results?limit=1` 取第一筆正賽的 season 作 `debutSeason`（不可用 `/seasons`）；失敗時 carry-forward
-- [ ] 國籍（英文 demonym）→ 中文對照表；本季車手國籍缺對照時測試失敗
-- [ ] View Model DriverView 帶 `age`、`birthDate`、`nationalityZh`、`seasonNumber`、`debutSeason`、`isRookie`
-- [ ] 車手頁名片卡顯示上述欄位；缺 `debutSeason` 時該列隱藏
-- [ ] 測試：生日前一天與當天的年齡邊界；2026 與 2027 注入時間下的第 N 季；本季出道特例
+- [x] 抓取：Jolpica `dateOfBirth` 進 DriverRef
+- [x] 抓取：每位車手一次 Jolpica `results?limit=1` 取第一筆正賽的 season 作 `debutSeason`（不可用 `/seasons`）；失敗時 carry-forward
+- [x] 國籍（英文 demonym）→ 中文對照表；本季車手國籍缺對照時測試失敗
+- [x] View Model DriverView 帶 `age`、`birthDate`、`nationalityZh`、`seasonNumber`、`debutSeason`、`isRookie`
+- [x] 車手頁名片卡顯示上述欄位；缺 `debutSeason` 時該列隱藏
+- [x] 測試：生日前一天與當天的年齡邊界；2026 與 2027 注入時間下的第 N 季；本季出道特例

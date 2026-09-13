@@ -60,6 +60,8 @@ const fallbackDriver = (id: string): DriverRef => ({
   familyName: id,
   nationality: '',
   headshotUrl: null,
+  dateOfBirth: null,
+  debutSeason: null,
 });
 
 const fallbackTeam = (id: string): TeamRef => ({ id, name: id, nationality: '', colour: null });
@@ -211,15 +213,35 @@ const buildTeams = (snapshot: Snapshot): TeamView[] => {
   }));
 };
 
-const buildDrivers = (snapshot: Snapshot): DriverView[] =>
-  snapshot.driverStandings.map((standing) => ({
-    driver: standing.driver,
-    team: standing.teams.at(-1) ?? null,
-    position: standing.position,
-    points: standing.points,
-    wins: standing.wins,
-    podiums: standing.podiums,
-  }));
+/** 足歲：以 UTC 日期比較，生日當天就算滿。 */
+const ageAt = (dateOfBirth: string, nowMs: number): number => {
+  const birth = new Date(`${dateOfBirth}T00:00:00Z`);
+  const now = new Date(nowMs);
+  let age = now.getUTCFullYear() - birth.getUTCFullYear();
+  const beforeBirthday =
+    now.getUTCMonth() < birth.getUTCMonth() ||
+    (now.getUTCMonth() === birth.getUTCMonth() && now.getUTCDate() < birth.getUTCDate());
+  if (beforeBirthday) age -= 1;
+  return age;
+};
+
+const buildDrivers = (snapshot: Snapshot, nowMs: number): DriverView[] =>
+  snapshot.driverStandings.map((standing) => {
+    const { driver } = standing;
+    // 第 N 季以積分那一季計 —— 跨年後 standings 仍是上一季時，資歷不會提前 +1
+    const seasonNumber = driver.debutSeason === null ? null : Number(snapshot.season) - Number(driver.debutSeason) + 1;
+    return {
+      driver,
+      team: standing.teams.at(-1) ?? null,
+      position: standing.position,
+      points: standing.points,
+      wins: standing.wins,
+      podiums: standing.podiums,
+      age: driver.dateOfBirth === null ? null : ageAt(driver.dateOfBirth, nowMs),
+      seasonNumber,
+      isRookie: seasonNumber === 1,
+    };
+  });
 
 /** 同一條賽道本季可能辦不只一站，以賽道為單位彙整。 */
 const buildCircuits = (snapshot: Snapshot): CircuitView[] => {
@@ -432,7 +454,7 @@ export const buildViewModel = (snapshots: ReadonlyArray<Snapshot>, now: Date): V
     fetchedAt: schedule.fetchedAt,
     weekends,
     teams,
-    drivers: buildDrivers(standings),
+    drivers: buildDrivers(standings, nowMs),
     circuits: buildCircuits(schedule),
     progression: buildProgression(standings),
     battles: buildBattles(standings, teams),

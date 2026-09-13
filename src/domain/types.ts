@@ -158,6 +158,13 @@ export interface DriverRef {
   nationality: string;
   /** 來自 OpenF1；缺漏時為 null，畫面降級為代表色 + 縮寫（見 docs/adr/0003）。 */
   headshotUrl: string | null;
+  /** YYYY-MM-DD；API 未提供時為 null。 */
+  dateOfBirth: string | null;
+  /**
+   * 第一次正賽出賽的球季。取自「第一筆正賽賽果」，**不是** Jolpica 的
+   * /seasons —— 那會把只跑 FP1 的年份也算進去（Antonelli 會變成 2024）。
+   */
+  debutSeason: string | null;
 }
 
 export interface TeamRef {
@@ -299,6 +306,12 @@ export interface DriverView {
   points: number;
   wins: number;
   podiums: number | null;
+  /** 以注入的「現在時間」算出的足歲；沒有生日為 null。 */
+  age: number | null;
+  /** F1 第 N 季（含積分那一季）；沒有出道年為 null。跨年後自動 +1。 */
+  seasonNumber: number | null;
+  /** 第 1 季 —— 畫面顯示「本季出道」而非「YYYY 出道」。 */
+  isRookie: boolean;
 }
 
 /** 賽道的畫面模型：賽道 + 本季在此舉辦的 Race Weekend。 */

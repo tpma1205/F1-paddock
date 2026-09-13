@@ -6,6 +6,7 @@
  * —— 賽曆每年會變，這張表必須容許缺漏而不是壞掉。
  */
 const ISO_CODE: Record<string, string> = {
+  Argentina: 'ar',
   Australia: 'au',
   Austria: 'at',
   Azerbaijan: 'az',
@@ -14,6 +15,8 @@ const ISO_CODE: Record<string, string> = {
   Brazil: 'br',
   Canada: 'ca',
   China: 'cn',
+  Denmark: 'dk',
+  Finland: 'fi',
   France: 'fr',
   Germany: 'de',
   Hungary: 'hu',
@@ -23,11 +26,14 @@ const ISO_CODE: Record<string, string> = {
   Mexico: 'mx',
   Monaco: 'mc',
   Netherlands: 'nl',
+  'New Zealand': 'nz',
   Portugal: 'pt',
   Qatar: 'qa',
   'Saudi Arabia': 'sa',
   Singapore: 'sg',
   Spain: 'es',
+  Switzerland: 'ch',
+  Thailand: 'th',
   UAE: 'ae',
   UK: 'gb',
   USA: 'us',

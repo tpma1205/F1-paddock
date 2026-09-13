@@ -18,6 +18,7 @@ import openF1Sessions from './openf1-sessions.json' with { type: 'json' };
 import openF1Fp1 from './openf1-session-result-fp1.json' with { type: 'json' };
 import openF1Sq from './openf1-session-result-sq.json' with { type: 'json' };
 import openF1MeetingDrivers from './openf1-drivers-meeting.json' with { type: 'json' };
+import debuts from './jolpica-debuts.json' with { type: 'json' };
 
 /**
  * 由錄製的真實 Jolpica 回應建出 Snapshot。
@@ -33,6 +34,7 @@ export const fixtureInput = (): NormaliseInput => ({
   results: [resultsPage1, resultsPage2, resultsPage3],
   sprints: [sprintPage1, sprintPage2],
   qualifying: [qualifyingPage1, qualifyingPage2, qualifyingPage3],
+  debuts,
   fetchedAt: '2026-09-10T00:00:00.000Z',
 });
 

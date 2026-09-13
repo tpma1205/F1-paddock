@@ -251,6 +251,37 @@ describe('buildViewModel', () => {
     });
   });
 
+  describe('車手資歷', () => {
+    const antonelli = (iso: string) => at(iso).drivers.find((d) => d.driver.id === 'antonelli')!;
+
+    it('年齡以注入的現在時間計算，生日當天就算滿', () => {
+      // Antonelli 2006-08-25
+      expect(antonelli('2026-08-24T23:59:59Z').age).toBe(19);
+      expect(antonelli('2026-08-25T00:00:00Z').age).toBe(20);
+      expect(antonelli('2026-09-10T12:00:00Z').age).toBe(20);
+    });
+
+    it('第 N 季 = 積分那一季 − 出道年 + 1；出道年來自第一筆正賽賽果', () => {
+      expect(antonelli('2026-09-10T12:00:00Z')).toMatchObject({ seasonNumber: 2, isRookie: false });
+      expect(antonelli('2026-09-10T12:00:00Z').driver.debutSeason).toBe('2025');
+      const alonso = at('2026-09-10T12:00:00Z').drivers.find((d) => d.driver.id === 'alonso')!;
+      expect(alonso.seasonNumber).toBe(26);
+    });
+
+    it('本季出道的新秀是第 1 季', () => {
+      const lindblad = at('2026-09-10T12:00:00Z').drivers.find((d) => d.driver.id === 'arvid_lindblad')!;
+      expect(lindblad).toMatchObject({ seasonNumber: 1, isRookie: true });
+    });
+
+    it('沒有生日或出道年時為 null，不猜', () => {
+      const bare = structuredClone(snapshot);
+      bare.driverStandings[0]!.driver.dateOfBirth = null;
+      bare.driverStandings[0]!.driver.debutSeason = null;
+      const vm = buildViewModel([bare], new Date('2026-09-10T12:00:00Z'));
+      expect(vm.drivers[0]).toMatchObject({ age: null, seasonNumber: null, isRookie: false });
+    });
+  });
+
   describe('賽道', () => {
     const { circuits } = at('2026-09-10T12:00:00Z');
 

@@ -8,6 +8,8 @@ import { BilingualName } from '../app/BilingualName.tsx';
 import { DriverPhoto } from '../app/DriverPhoto.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedDriver, localisedTeam } from '../data/localisation.ts';
+import { localisedNationality } from '../app/nationalities.ts';
+import { Flag } from '../app/Flag.tsx';
 
 
 interface DriverPageProps {
@@ -38,6 +40,7 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
     '--team-text': readableOn(accent, GROUND),
   } as MotionStyle;
   const fullName = `${driver.givenName} ${driver.familyName}`;
+  const nationality = localisedNationality(driver.nationality);
 
   return (
     <motion.article
@@ -62,11 +65,49 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
               <Link to={`/teams/${team.id}`}>
                 <BilingualName canonical={team.name} localised={localisedTeam(team.id)} />
               </Link>
-              <span className="driver-detail__nationality">{driver.nationality}</span>
             </p>
           )}
         </div>
       </motion.header>
+
+      <motion.dl className="facts" variants={item} aria-label="車手資料">
+        {entry.age !== null && driver.dateOfBirth && (
+          <div className="facts__item">
+            <dt>年齡</dt>
+            <dd>
+              {entry.age} 歲<span className="facts__note">{driver.dateOfBirth}</span>
+            </dd>
+          </div>
+        )}
+        <div className="facts__item">
+          <dt>國籍</dt>
+          <dd className="facts__nationality">
+            {nationality ? (
+              <>
+                <Flag country={nationality.country} />
+                {nationality.zh}
+              </>
+            ) : (
+              driver.nationality
+            )}
+          </dd>
+        </div>
+        {driver.permanentNumber && (
+          <div className="facts__item">
+            <dt>車號</dt>
+            <dd>#{driver.permanentNumber}</dd>
+          </div>
+        )}
+        {entry.seasonNumber !== null && (
+          <div className="facts__item">
+            <dt>資歷</dt>
+            <dd>
+              F1 第 {entry.seasonNumber} 季
+              <span className="facts__note">{entry.isRookie ? '本季出道' : `${driver.debutSeason} 出道`}</span>
+            </dd>
+          </div>
+        )}
+      </motion.dl>
 
       <motion.ul className="stat-row" variants={item}>
         <li className="stat stat--large">

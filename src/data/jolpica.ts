@@ -69,6 +69,8 @@ interface RawDriver {
   permanentNumber?: string;
   givenName: string;
   familyName: string;
+  /** YYYY-MM-DD */
+  dateOfBirth?: string;
   nationality: string;
 }
 
@@ -247,7 +249,10 @@ const deriveTeamColours = (
   return colours;
 };
 
-const toDriverRef = (raw: RawDriver, openF1: ReadonlyMap<string, OpenF1DriverInfo>): DriverRef => ({
+/** driverId → 出道球季（見 DriverRef.debutSeason）。 */
+export type Debuts = Readonly<Record<string, string | null>>;
+
+const toDriverRef = (raw: RawDriver, openF1: ReadonlyMap<string, OpenF1DriverInfo>, debuts: Debuts): DriverRef => ({
   id: raw.driverId,
   code: raw.code ?? null,
   permanentNumber: raw.permanentNumber ?? null,
@@ -255,6 +260,8 @@ const toDriverRef = (raw: RawDriver, openF1: ReadonlyMap<string, OpenF1DriverInf
   familyName: raw.familyName,
   nationality: raw.nationality,
   headshotUrl: (raw.code && openF1.get(raw.code)?.headshotUrl) || null,
+  dateOfBirth: raw.dateOfBirth ?? null,
+  debutSeason: debuts[raw.driverId] ?? null,
 });
 
 const CLASSIFIED = /^\d+$/;
@@ -359,13 +366,14 @@ const toDriverStanding =
     colours: ColourByTeam,
     openF1: ReadonlyMap<string, OpenF1DriverInfo>,
     podiums: ReadonlyMap<string, number> | null,
+    debuts: Debuts,
   ) =>
   (raw: RawDriverStanding): DriverStanding => ({
     position: Number(raw.position),
     points: Number(raw.points),
     wins: Number(raw.wins),
     podiums: podiums === null ? null : (podiums.get(raw.Driver.driverId) ?? 0),
-    driver: toDriverRef(raw.Driver, openF1),
+    driver: toDriverRef(raw.Driver, openF1, debuts),
     teams: raw.Constructors.map((team) => toTeamRef(team, colours)),
   });
 
@@ -452,6 +460,8 @@ export interface NormaliseInput {
   qualifying?: ReadonlyArray<RawQualifyingResponse>;
   /** 練習賽／衝刺排位的名次表 sidecar（見 normaliseTimedResults）；可省略，屆時 Session.leader 皆為 null。 */
   timedResults?: TimedResults;
+  /** 各車手的出道球季；可省略，屆時 debutSeason 皆為 null。 */
+  debuts?: Debuts;
   fetchedAt: string;
 }
 
@@ -470,6 +480,7 @@ export const normaliseSeason = ({
   sprints,
   qualifying,
   timedResults,
+  debuts = {},
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
@@ -495,7 +506,7 @@ export const normaliseSeason = ({
     fetchedAt,
     weekends,
     driverStandings: rawDrivers
-      .map(toDriverStanding(colours, openF1, podiums))
+      .map(toDriverStanding(colours, openF1, podiums, debuts))
       .sort((a, b) => a.position - b.position),
     teamStandings: rawTeams.map(toTeamStanding(colours)).sort((a, b) => a.position - b.position),
   };
