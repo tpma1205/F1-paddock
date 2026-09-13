@@ -4,10 +4,10 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `favicon.svg` 原稿：`#e10600` 圓角方底、白色「P」、斜切線；不用 F1 官方字型或商標
-- [ ] 建置前腳本由 SVG 產出 `apple-touch-icon.png`（180×180）與 `favicon.ico`（32×32）
-- [ ] `index.html` 掛 `<link rel="icon" type="image/svg+xml">`、`apple-touch-icon`、ico 備援，路徑走 Vite base
-- [ ] 預產生的每個路由 HTML 與 404.html 都帶同一組 link
-- [ ] 線上驗證：分頁列與 `/F1-paddock/favicon.svg` 都能看到圖示
+- [x] `favicon.svg` 原稿：`#e10600` 圓角方底、白色「P」、斜切線；不用 F1 官方字型或商標
+- [x] 建置前腳本由 SVG 產出 `apple-touch-icon.png`（180×180）與 `favicon.ico`（32×32）
+- [x] `index.html` 掛 `<link rel="icon" type="image/svg+xml">`、`apple-touch-icon`、ico 備援，路徑走 Vite base
+- [x] 預產生的每個路由 HTML 與 404.html 都帶同一組 link
+- [x] 線上驗證：分頁列與 `/F1-paddock/favicon.svg` 都能看到圖示

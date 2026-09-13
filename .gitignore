@@ -3,3 +3,8 @@ dist/
 *.local
 .DS_Store
 .vite/
+
+# 由 assets/favicon.svg 產生（scripts/build-icons.ts）
+public/favicon.svg
+public/apple-touch-icon.png
+public/favicon.ico
