@@ -9,6 +9,8 @@ import { DriverPhoto } from '../app/DriverPhoto.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedDriver, localisedTeam } from '../data/localisation.ts';
 import { localisedNationality } from '../app/nationalities.ts';
+import { driverProfile } from '../data/profiles.ts';
+import { ProfileSection } from '../app/ProfileSection.tsx';
 import { Flag } from '../app/Flag.tsx';
 
 
@@ -108,6 +110,8 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
           </div>
         )}
       </motion.dl>
+
+      <ProfileSection intro={driverProfile(driver.id)?.intro ?? null} variants={item} />
 
       <motion.ul className="stat-row" variants={item}>
         <li className="stat stat--large">

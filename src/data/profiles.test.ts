@@ -41,9 +41,11 @@ describe('Profile 資料表', () => {
   });
 
   it('車隊簡介的專有名詞遵守譯名表（不出現非台灣譯名）', () => {
-    const banned = ['邁凱倫', '梅賽德斯', '阿斯頓馬丁', '梅塞德斯'];
-    for (const [id, profile] of Object.entries(TEAM_PROFILES)) {
+    const banned = ['邁凱倫', '梅賽德斯', '阿斯頓馬丁', '梅塞德斯', '韋斯塔潘', '維斯塔本', '哈密爾頓'];
+    for (const [id, profile] of Object.entries({ ...TEAM_PROFILES, ...DRIVER_PROFILES })) {
       for (const word of banned) expect(profile.intro, id).not.toContain(word);
+    }
+    for (const [id, profile] of Object.entries(TEAM_PROFILES)) {
       expect(profile.base.length, id).toBeGreaterThan(0);
       expect(profile.powerUnit.length, id).toBeGreaterThan(0);
     }
