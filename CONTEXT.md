@@ -46,12 +46,30 @@ _Avoid_: Constructor（Jolpica API 的用字，僅在描述 API 原始回應時�
 _Avoid_: Track、賽車場
 
 **Standings（積分榜）**:
-球季累計積分排名，分為車手積分榜與車隊積分榜。與單場 Result（賽果）不同。
+球季累計積分排名，分為車手積分榜與車隊積分榜。與單場 Result（結果）不同。
 _Avoid_: Ranking、排行
 
-**Result（賽果）**:
-單一場次結束後的名次與成績。與 Standings 不同。
+**Result（結果）**:
+任一 Session 結束後的名次表。介面上依場次種類用對應的詞：正賽是「賽果」、排位賽是「排位結果」、練習賽是「練習結果」。與 Standings 不同。
 _Avoid_: Classification、成績
+
+**Best Lap（最快圈）**:
+一位車手在某個場次跑出的最快單圈時間，是練習賽與排位賽的排名依據。
+_Avoid_: Fastest lap（那是正賽的單圈獎）
+
+**Gap（差距）**:
+與該場次第一名的 Best Lap 時間差。
+_Avoid_: Delta、Interval（那是與前一名的差）
+
+**Profile（簡介）**:
+Team、Driver、Circuit 的手寫繁中介紹文字，加上少量結構化欄位（總部、動力單元、賽道長度…）。是可選的：沒有簡介的實體不顯示該區塊。
+_Avoid_: Bio、About、介紹（作為區塊標題時一律用「簡介」）
+
+### 導覽
+
+**Breadcrumb（路徑導覽）**:
+頂欄下方顯示目前頁面在站內位置的鏈，例如「首頁 / 車手 / 安東內利」。最後一段是目前頁面，不可點。
+_Avoid_: 麵包屑
 
 ### 雙語命名
 
