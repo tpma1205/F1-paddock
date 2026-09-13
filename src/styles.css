@@ -1157,6 +1157,20 @@ body {
   text-decoration: underline;
 }
 
+/* ---------------------------------------------------------------- 簡介 */
+
+.profile__intro {
+  max-width: 44rem;
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.85;
+  color: var(--text-dim);
+}
+
+.profile .facts {
+  margin-top: 1rem;
+}
+
 /* ---------------------------------------------------------------- 資料名片 */
 
 /* 年齡／國籍／車號／資歷 —— 一列小卡，缺哪個欄位就少一格 */

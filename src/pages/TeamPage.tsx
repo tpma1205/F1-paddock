@@ -11,6 +11,8 @@ import { TeammateBattleCard } from '../app/TeammateBattleCard.tsx';
 import type { TeammateBattle } from '../domain/types.ts';
 import { readableOn } from '../app/colour.ts';
 import { localisedTeam } from '../data/localisation.ts';
+import { teamProfile } from '../data/profiles.ts';
+import { ProfileSection } from '../app/ProfileSection.tsx';
 
 
 interface TeamPageProps {
@@ -36,6 +38,7 @@ export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element
     );
   }
 
+  const profile = teamProfile(team.id);
   const accent = team.colour ?? NEUTRAL_ACCENT;
   // motion 元件的 style 型別是 MotionStyle，自訂屬性需經此斷言。
   const style = {
@@ -77,6 +80,12 @@ export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element
           <span className="stat__label">勝場</span>
         </li>
       </motion.ul>
+
+      <ProfileSection
+        intro={profile?.intro ?? null}
+        facts={profile ? [{ label: '總部', value: profile.base }, { label: '動力單元', value: profile.powerUnit }] : []}
+        variants={item}
+      />
 
       <motion.h2 className="section-title" variants={item}>
         車手陣容

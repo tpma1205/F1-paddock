@@ -122,6 +122,7 @@ describe('不寫死年份', () => {
   const ALLOWED = new Set([
     'src/app/teamAssets.ts', // LOGO_ASSET_VERSION：CDN 資產目錄，非賽季
     'src/data/circuitInfo.ts', // 單圈紀錄的年份：資料，非程式邏輯
+    'src/data/profiles.ts', // 簡介文字裡的歷史年份：資料，非程式邏輯
   ]);
   // 資料目錄與 fixture 不是程式碼
   const SKIP_DIRS = new Set(['src/data/__fixtures__', 'src/data/snapshots', 'src/data/circuits']);
