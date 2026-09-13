@@ -26,7 +26,7 @@ const SNAPSHOTS = join(ROOT, 'src', 'data', 'snapshots');
 /** 讀入所有球季的快照 —— 賽程季與積分季由 buildViewModel 決定。 */
 const loadSnapshots = (): Snapshot[] =>
   readdirSync(SNAPSHOTS)
-    .filter((name) => name.endsWith('.json'))
+    .filter((name) => /^\d{4}\.json$/.test(name)) // 核心快照；timed/ 是 sidecar
     .map((name) => JSON.parse(readFileSync(join(SNAPSHOTS, name), 'utf8')) as Snapshot);
 
 const main = (): void => {

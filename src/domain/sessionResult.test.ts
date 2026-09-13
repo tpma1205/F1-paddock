@@ -1,43 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { fixtureInput } from '../data/__fixtures__/buildFixtureSnapshot.ts';
-import sessions from '../data/__fixtures__/openf1-sessions.json' with { type: 'json' };
-import fp1Rows from '../data/__fixtures__/openf1-session-result-fp1.json' with { type: 'json' };
-import sqRows from '../data/__fixtures__/openf1-session-result-sq.json' with { type: 'json' };
-import meetingDrivers from '../data/__fixtures__/openf1-drivers-meeting.json' with { type: 'json' };
-import { normaliseSeason } from '../data/jolpica.ts';
-import type { RawOpenF1SessionResult } from '../data/openf1.ts';
+import { buildFixtureSnapshotWithTimed, fixtureTimedResults } from '../data/__fixtures__/buildFixtureSnapshot.ts';
 import { formatGapMs, formatLapMs } from './laptime.ts';
-import { buildViewModel } from './viewModel.ts';
+import { buildViewModel, toTimedResultViews } from './viewModel.ts';
 
-const snapshot = normaliseSeason({
-  ...fixtureInput(),
-  openF1Sessions: {
-    sessions,
-    results: { 11354: fp1Rows as RawOpenF1SessionResult[], 11236: sqRows as RawOpenF1SessionResult[] },
-    drivers: meetingDrivers,
-  },
-});
+const snapshot = buildFixtureSnapshotWithTimed();
+const timed = fixtureTimedResults();
 const at = (iso: string) => buildViewModel([snapshot], new Date(iso));
 const italy = (iso: string) => at(iso).weekends.find((w) => w.round === 13)!;
 
 describe('場次結果（View Model）', () => {
-  it('練習賽名次表已解析車手與車隊，時間格式化為 m:ss.mmm、差距為 +s.mmm', () => {
-    const fp1 = italy('2026-09-10T12:00:00Z').sessions.find((s) => s.kind === 'fp1')!;
-    expect(fp1.result).toHaveLength(22);
-    expect(fp1.result?.[0]).toMatchObject({ position: 1, bestLap: '1:23.008', gap: '' });
-    expect(fp1.result?.[0]?.driver?.id).toBe('leclerc');
-    expect(fp1.result?.[0]?.team?.id).toBe('ferrari');
-    expect(fp1.result?.[21]).toMatchObject({ bestLap: '1:29.922', gap: '+6.914' });
+  it('sidecar 名次表經 toTimedResultViews 解析車手與車隊，時間格式化為 m:ss.mmm、差距為 +s.mmm', () => {
+    const rows = toTimedResultViews(timed['13:fp1']!, at('2026-09-10T12:00:00Z'));
+    expect(rows).toHaveLength(22);
+    expect(rows[0]).toMatchObject({ position: 1, bestLap: '1:23.008', gap: '' });
+    expect(rows[0]?.driver?.id).toBe('leclerc');
+    expect(rows[0]?.team?.id).toBe('ferrari');
+    expect(rows[21]).toMatchObject({ bestLap: '1:29.922', gap: '+6.914' });
   });
 
   it('對不到車手的車號：driver 與 team 為 null、車號保留', () => {
-    const fp1 = italy('2026-09-10T12:00:00Z').sessions.find((s) => s.kind === 'fp1')!;
-    const iwasa = fp1.result?.find((r) => r.driverNumber === 36);
-    expect(iwasa).toMatchObject({ driver: null, team: null, driverNumber: 36 });
-  });
-
-  it('沒抓到的練習賽 result 為 null', () => {
-    expect(italy('2026-09-10T12:00:00Z').sessions.find((s) => s.kind === 'fp2')!.result).toBeNull();
+    const rows = toTimedResultViews(timed['13:fp1']!, at('2026-09-10T12:00:00Z'));
+    expect(rows.find((r) => r.driverNumber === 36)).toMatchObject({ driver: null, team: null, driverNumber: 36 });
   });
 
   describe('第一名（場次面板用）', () => {
@@ -75,6 +58,26 @@ describe('場次結果（View Model）', () => {
       expect(fp2.status).toBe('finished');
       expect(fp2.leader).toBeNull();
     });
+  });
+});
+
+describe('單站頁預設籤：最近一個已結束的場次', () => {
+  // 義大利站：FP1 09-04 10:30Z、FP2 14:00Z、FP3 09-05 10:30Z、排位 14:00Z、正賽 09-06 13:00Z
+  const kindAt = (iso: string) => italy(iso).latestFinishedSession;
+
+  it('週五 FP1 結束後停在 FP1', () => expect(kindAt('2026-09-04T12:00:00Z')).toBe('fp1'));
+  it('週六排位結束後停在排位賽', () => expect(kindAt('2026-09-05T16:00:00Z')).toBe('qualifying'));
+  it('週日正賽結束後停在正賽', () => expect(kindAt('2026-09-06T16:00:00Z')).toBe('race'));
+  it('場次進行中時停在前一個已結束的', () => expect(kindAt('2026-09-05T11:00:00Z')).toBe('fp2'));
+  it('全部未開始為 null', () => expect(kindAt('2026-09-01T00:00:00Z')).toBeNull());
+  it('Off-season（隔年）仍是正賽', () => expect(kindAt('2027-01-15T00:00:00Z')).toBe('race'));
+
+  it('排位與衝刺賽結果已解析車手與車隊', () => {
+    const w = italy('2026-09-10T12:00:00Z');
+    expect(w.qualifying?.[0]?.driver.code).toBeTruthy();
+    expect(w.qualifying?.[0]?.team.id).toBeTruthy();
+    const china = at('2026-09-10T12:00:00Z').weekends.find((x) => x.round === 2)!;
+    expect(china.sprintResults?.[0]?.driver.id).toBeTruthy();
   });
 });
 

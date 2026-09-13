@@ -12,6 +12,8 @@ import { dirname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   normaliseSeason,
+  normaliseTimedResults,
+  type OpenF1SessionsInput,
   type RawDriverStandingsResponse,
   type RawQualifyingResponse,
   type RawRacesResponse,
@@ -28,7 +30,7 @@ import {
   type RawOpenF1SessionResult,
 } from '../src/data/openf1.ts';
 import { endOf } from '../src/domain/season.ts';
-import type { Snapshot } from '../src/domain/types.ts';
+import { timedKey, type Snapshot, type TimedResults } from '../src/domain/types.ts';
 
 const API = 'https://api.jolpi.ca/ergast/f1';
 const BASE = `${API}/current`;
@@ -61,6 +63,8 @@ const getOpenF1Json = async <T>(url: string): Promise<T> => {
  * 舊的一份原地留存即成封存 —— 不需要搬移或改寫任何資料。
  */
 const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'data', 'snapshots');
+/** 練習賽／衝刺排位名次表的 sidecar，與核心快照同名、放在 timed/ 底下。 */
+const TIMED_DIR = join(OUTPUT_DIR, 'timed');
 
 /**
  * 縱深防禦：season 已在 normaliseSeason 驗證為四位數年份，這裡再確認解析後的
@@ -69,9 +73,9 @@ const OUTPUT_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'd
  * 本腳本在 CI 中以 repo 寫入權限執行，寫入點是最後一道關卡 —— 就算日後有人
  * 放寬了上游的驗證，也不該讓第三方回應決定寫到哪裡。
  */
-const pathForSeason = (season: string): string => {
-  const target = resolve(join(OUTPUT_DIR, `${season}.json`));
-  if (!target.startsWith(resolve(OUTPUT_DIR) + sep)) {
+const pathForSeason = (season: string, dir = OUTPUT_DIR): string => {
+  const target = resolve(join(dir, `${season}.json`));
+  if (!target.startsWith(resolve(dir) + sep)) {
     throw new Error(`快照路徑越界：${JSON.stringify(season)}`);
   }
   return target;
@@ -128,11 +132,16 @@ const fetchUpcomingSeason = async (currentSeason: string): Promise<void> => {
 const loadExistingSnapshot = (): Snapshot | null => {
   if (!existsSync(OUTPUT_DIR)) return null;
   const newest = readdirSync(OUTPUT_DIR)
-    .filter((name) => name.endsWith('.json'))
+    .filter((name) => /^\d{4}\.json$/.test(name))
     .sort()
     .at(-1);
   if (!newest) return null;
   return JSON.parse(readFileSync(join(OUTPUT_DIR, newest), 'utf8')) as Snapshot;
+};
+
+const loadExistingTimedResults = (season: string): TimedResults | null => {
+  const path = pathForSeason(season, TIMED_DIR);
+  return existsSync(path) ? (JSON.parse(readFileSync(path, 'utf8')) as TimedResults) : null;
 };
 
 /**
@@ -183,23 +192,21 @@ const getOpenF1Drivers = async (previous: Snapshot | null): Promise<RawOpenF1Dri
 /**
  * 由 OpenF1 抓沒有 Jolpica 來源的場次 Result（FP1–FP3、衝刺排位）。
  *
- * 只抓**已結束且快照裡還沒有**的場次 —— 名次表定案後不會變，每週重抓全季
- * 是浪費；上一份快照有的直接沿用（carryForwardTimedResults）。任何一步失敗
- * 都只是少了那些場次，不影響快照產出。
+ * 只抓**已結束且上一份 sidecar 裡還沒有**的場次 —— 名次表定案後不會變，每週
+ * 重抓全季是浪費；上一份有的直接沿用（carryForwardTimedResults）。任何一步
+ * 失敗都只是少了那些場次，不影響快照產出。
  */
-type OpenF1Sessions = NonNullable<Parameters<typeof normaliseSeason>[0]['openF1Sessions']>;
-
 const getOpenF1Sessions = async (
   season: string,
   weekends: Snapshot['weekends'],
-  previous: Snapshot | null,
-): Promise<OpenF1Sessions | undefined> => {
+  previous: TimedResults | null,
+): Promise<OpenF1SessionsInput | undefined> => {
   const nowMs = Date.now();
   let sessions: RawOpenF1Session[];
   try {
     sessions = await getOpenF1Json<RawOpenF1Session[]>(`${OPENF1}/sessions?year=${season}`);
   } catch (error) {
-    console.warn(`⚠ OpenF1 場次清單抓取失敗（${error instanceof Error ? error.message : String(error)}），練習賽結果沿用上一份快照。`);
+    console.warn(`⚠ OpenF1 場次清單抓取失敗（${error instanceof Error ? error.message : String(error)}），練習賽結果沿用上一份。`);
     return undefined;
   }
 
@@ -209,10 +216,9 @@ const getOpenF1Sessions = async (
   let fetched = 0;
 
   for (const weekend of weekends) {
-    const already = previous?.weekends.find((w) => w.round === weekend.round);
     for (const session of weekend.sessions) {
       if (!TIMED_KINDS.has(session.kind) || endOf(session) > nowMs) continue;
-      if (already?.sessions.find((s) => s.kind === session.kind)?.result) continue; // 上一份已有，沿用
+      if (previous?.[timedKey(weekend.round, session.kind)]) continue; // 上一份已有，沿用
 
       const key = matchOpenF1Session(session, sessions);
       if (key === null) continue;
@@ -265,20 +271,23 @@ const main = async (): Promise<void> => {
     const fetchedAt = new Date().toISOString();
     const jolpicaInput = { races, driverStandings, teamStandings, openF1Drivers, results, sprints, qualifying, fetchedAt };
 
-    // 先用 Jolpica 建出賽程，才知道要向 OpenF1 要哪些場次；再帶著場次結果建一次
+    // 先用 Jolpica 建出賽程，才知道要向 OpenF1 要哪些場次；再帶著 sidecar 的摘要建一次
     const provisional = normaliseSeason(jolpicaInput);
-    const openF1Sessions = await getOpenF1Sessions(provisional.season, provisional.weekends, previous);
-    const snapshot = carryForwardTimedResults(
-      normaliseSeason(openF1Sessions ? { ...jolpicaInput, openF1Sessions } : jolpicaInput),
-      previous,
+    const previousTimed = loadExistingTimedResults(provisional.season);
+    const openF1Sessions = await getOpenF1Sessions(provisional.season, provisional.weekends, previousTimed);
+    const timedResults = carryForwardTimedResults(
+      openF1Sessions ? normaliseTimedResults(jolpicaInput, openF1Sessions) : {},
+      previousTimed,
     );
+    const snapshot = normaliseSeason({ ...jolpicaInput, timedResults });
 
-    mkdirSync(OUTPUT_DIR, { recursive: true });
+    mkdirSync(TIMED_DIR, { recursive: true });
     writeFileSync(pathForSeason(snapshot.season), `${JSON.stringify(snapshot, null, 2)}\n`, 'utf8');
+    writeFileSync(pathForSeason(snapshot.season, TIMED_DIR), `${JSON.stringify(timedResults)}\n`, 'utf8');
     await fetchUpcomingSeason(snapshot.season);
     const coloured = snapshot.teamStandings.filter((s) => s.team.colour !== null).length;
     const withResults = snapshot.weekends.filter((w) => w.results !== null).length;
-    const timedSessions = snapshot.weekends.flatMap((w) => w.sessions).filter((s) => s.result !== null).length;
+    const timedSessions = Object.keys(timedResults).length;
     console.log(
       `✓ ${snapshot.season} 球季：${snapshot.weekends.length} 站、已完成第 ${snapshot.completedRound ?? 0} 站、${withResults} 站有賽果、${timedSessions} 個練習賽／衝刺排位有結果、${coloured}/${snapshot.teamStandings.length} 隊有代表色`,
     );

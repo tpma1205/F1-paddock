@@ -63,15 +63,26 @@ export interface TimedResult {
   laps: number;
 }
 
+/**
+ * 練習賽與衝刺排位的完整名次表，以 `timedKey(round, kind)` 為鍵。
+ *
+ * 它是 Snapshot 的 **sidecar**：另存一個檔案、只有單站頁才載入 —— 全季約
+ * 一百個場次乘二十幾列，放進核心快照會讓每一頁都多載一份沒人看的資料。
+ * 核心快照裡只留每個場次的第一名（Session.leader）給首頁的場次面板。
+ */
+export type TimedResults = Record<string, TimedResult[]>;
+
+export const timedKey = (round: number, kind: SessionKind): string => `${round}:${kind}`;
+
 export interface Session {
   kind: SessionKind;
   /** ISO 8601 UTC 字串。 */
   startsAt: string;
   /**
-   * 只有 FP1–FP3 與衝刺排位會有值（來自 OpenF1）；正賽／衝刺賽／排位賽的
-   * Result 在 RaceWeekend 層，這裡一律 null。尚未取得也是 null。
+   * 只有 FP1–FP3 與衝刺排位會有值：該場次的第一名，摘要自 TimedResults。
+   * 正賽／衝刺賽／排位賽的 Result 在 RaceWeekend 層，這裡一律 null。尚未取得也是 null。
    */
-  result: TimedResult[] | null;
+  leader: TimedResult | null;
 }
 
 export interface Circuit {
@@ -223,10 +234,18 @@ export interface SessionView {
   /** 由 startsAt 加上慣例時長推導，非 API 提供。 */
   endsAt: string;
   status: SessionStatus;
-  /** FP1–FP3 與衝刺排位的名次表；其他場次或尚未取得為 null。 */
-  result: TimedResultView[] | null;
   /** 任何已有 Result 的場次都有；未結束或沒有資料為 null。 */
   leader: SessionLeader | null;
+}
+
+/** 排位結果 + 解析後的車手與車隊參照。 */
+export interface QualifyingView {
+  position: number;
+  driver: DriverRef;
+  team: TeamRef;
+  q1: string | null;
+  q2: string | null;
+  q3: string | null;
 }
 
 /** 賽果 + 解析後的車手與車隊參照。 */
@@ -245,8 +264,15 @@ export interface WeekendView {
   /** 距離正賽開始的毫秒數；已開始或已結束為 0。賽程表的倒數用它，元件不自己算時間。 */
   msUntilRace: number;
   results: ResultView[] | null;
+  sprintResults: ResultView[] | null;
+  qualifying: QualifyingView[] | null;
   /** 前三名（有正式名次者），供賽程表直接顯示。 */
   podium: ResultView[];
+  /**
+   * 最近一個已結束的場次 —— 單站頁預設停在這一籤，賽事週末當中每天打開
+   * 都直接看到最新的 Result。全部未開始為 null。
+   */
+  latestFinishedSession: SessionKind | null;
 }
 
 export interface NextSession {

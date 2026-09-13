@@ -47,12 +47,6 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
       initial="hidden"
       animate="shown"
     >
-      <motion.p className="breadcrumb" variants={item}>
-        <Link to="/drivers">車手</Link>
-        <span aria-hidden="true">/</span>
-        <span>{fullName}</span>
-      </motion.p>
-
       <motion.header className="driver-detail__head" variants={item}>
         <DriverPhoto driver={driver} colour={accent} size="hero" />
         <div className="driver-detail__identity">

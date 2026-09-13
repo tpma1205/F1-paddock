@@ -41,17 +41,18 @@ const committedVersion = (path: string): Snapshot | null => {
 
 const main = (): void => {
   // 以參數陣列呼叫、不經 shell —— 路徑不會被當成 shell 語法解讀。
-  const status = execFileSync('git', ['status', '--porcelain', '--', SNAPSHOT_DIR], {
+  const status = execFileSync('git', ['status', '--porcelain', '-uall', '--', SNAPSHOT_DIR], {
     cwd: ROOT,
     encoding: 'utf8',
   });
   const nowMs = Date.now();
   const toArchive: string[] = [];
 
-  for (const line of status.split('\n').filter(Boolean)) {
-    const code = line.slice(0, 2);
-    const path = line.slice(3).trim();
-    if (!path.endsWith('.json')) continue;
+  const changed = status.split('\n').filter(Boolean).map((line) => ({ code: line.slice(0, 2), path: line.slice(3).trim() }));
+
+  for (const { code, path } of changed) {
+    // 只對核心快照做判斷；sidecar（timed/<season>.json）跟著同季的核心一起封存
+    if (!/\/\d{4}\.json$/.test(path) || path.includes('/timed/')) continue;
 
     const isNew = code.includes('?') || code.includes('A');
     if (isNew) {
@@ -65,6 +66,11 @@ const main = (): void => {
     const committed = committedVersion(path);
     if (committed && materiallyEqual(committed, snapshot)) continue; // 只有 fetchedAt 變了
     toArchive.push(path);
+  }
+
+  for (const path of [...toArchive]) {
+    const sidecar = path.replace(/(\d{4})\.json$/, 'timed/$1.json');
+    if (changed.some((c) => c.path === sidecar)) toArchive.push(sidecar);
   }
 
   for (const path of toArchive) console.log(path);

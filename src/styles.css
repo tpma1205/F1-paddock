@@ -720,23 +720,6 @@ body {
   color: var(--text-dim);
 }
 
-.breadcrumb {
-  margin: 0 0 1.5rem;
-  display: flex;
-  gap: 0.6rem;
-  font-size: 0.8125rem;
-  color: var(--text-faint);
-}
-
-.breadcrumb a {
-  color: var(--text-dim);
-  text-decoration: none;
-}
-
-.breadcrumb a:hover {
-  color: var(--text);
-}
-
 /* ------------------------------------------------------------ 車隊卡片 */
 
 .team-grid,
@@ -1790,6 +1773,95 @@ body {
   color: var(--team-text);
 }
 
+/* 排位賽：三節時間欄等寬；練習賽：差距／圈數兩欄 */
+.results--qualifying .result__row {
+  grid-template-columns: 2.5rem auto 1fr 5.5rem 5.5rem 5.5rem 6rem;
+}
+
+.results--timed .result__row {
+  grid-template-columns: 2.5rem auto 1fr 5rem 3.5rem 6.5rem;
+}
+
+.result__cell--time,
+.stat__value--time {
+  font-variant-numeric: tabular-nums;
+}
+
+.result__points .stat__value--time {
+  font-size: 1.125rem;
+}
+
+/* 對不到車手的車號：以車號代替照片 */
+.driver-photo--number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  align-items: center;
+  color: var(--text-dim);
+}
+
+/* ---------------------------------------------------------------- 場次分頁籤 */
+
+.tabs {
+  margin-top: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.tabs__list {
+  display: flex;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.tabs__list::-webkit-scrollbar {
+  display: none;
+}
+
+.tabs__tab {
+  flex-shrink: 0;
+  padding: 0.6rem 1rem;
+  margin-bottom: -1px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.tabs__tab:hover {
+  color: var(--text);
+}
+
+.tabs__tab[aria-selected='true'] {
+  color: var(--text);
+  border-bottom-color: var(--f1-red);
+}
+
+/* 尚未舉行的場次：淡化，仍可點以看到開始時間 */
+.tabs__tab--pending {
+  color: var(--text-faint);
+}
+
+.tabs__tab:focus-visible {
+  outline: 2px solid var(--f1-red);
+  outline-offset: -2px;
+}
+
+.tabs__panel .section-title {
+  margin-top: 1.5rem;
+}
+
+.tabs__pending {
+  padding: 1.5rem 0;
+}
+
 /* 桌機：欄位全部攤平，展開機制停用 */
 .result__more {
   display: none;
@@ -1803,6 +1875,11 @@ body {
 
   .result__cell--secondary {
     display: none;
+  }
+
+  .results--qualifying .result__row,
+  .results--timed .result__row {
+    grid-template-columns: 2rem auto 1fr auto;
   }
 
   .result__details summary {

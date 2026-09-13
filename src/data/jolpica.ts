@@ -22,6 +22,8 @@ import {
   type Snapshot,
   type TeamRef,
   type TeamStanding,
+  type TimedResults,
+  timedKey,
 } from '../domain/types.ts';
 
 /**
@@ -197,11 +199,11 @@ const toSessions = (race: RawRace): Session[] => {
     const slot = race[field];
     if (!slot || typeof slot !== 'object') continue;
     const startsAt = toIso(slot as RawSessionTime);
-    if (startsAt) sessions.push({ kind, startsAt, result: null });
+    if (startsAt) sessions.push({ kind, startsAt, leader: null });
   }
 
   const raceStartsAt = toIso(race) ?? new Date(`${race.date}T00:00:00Z`).toISOString();
-  sessions.push({ kind: 'race', startsAt: raceStartsAt, result: null });
+  sessions.push({ kind: 'race', startsAt: raceStartsAt, leader: null });
 
   return sessions.sort(
     (a, b) =>
@@ -392,25 +394,46 @@ const assertValidSeason = (season: string): string => {
   return season;
 };
 
+export interface OpenF1SessionsInput {
+  sessions: ReadonlyArray<RawOpenF1Session>;
+  /** 各場次的名次表，以 session_key 為鍵；沒抓到的場次不放。 */
+  results: Readonly<Record<number, ReadonlyArray<RawOpenF1SessionResult>>>;
+  /** 車手清單（跨 meeting），供車號對縮寫。 */
+  drivers: ReadonlyArray<Pick<RawOpenF1Driver, 'driver_number' | 'name_acronym'>>;
+}
+
 /**
- * 把 OpenF1 的名次表掛到對應的 Session 上（就地修改剛建好的 weekends）。
- * 只處理 TIMED_KINDS；對不到 session_key 或沒抓到的場次維持 null。
+ * OpenF1 的名次表 → TimedResults sidecar。與 normaliseSeason 分開：sidecar
+ * 另存一檔、可獨立 carry-forward；核心快照只從它摘要每個場次的第一名。
  */
-const attachTimedResults = (
-  weekends: RaceWeekend[],
-  standings: ReadonlyArray<RawDriverStanding>,
-  openF1: NonNullable<NormaliseInput['openF1Sessions']>,
-): void => {
+export const normaliseTimedResults = (
+  { races, driverStandings }: Pick<NormaliseInput, 'races' | 'driverStandings'>,
+  openF1: OpenF1SessionsInput,
+): TimedResults => {
+  const standings = driverStandings.MRData.StandingsTable.StandingsLists[0]?.DriverStandings ?? [];
   const numberToCode = indexDriverNumbers(openF1.drivers);
   const codeToDriverId = new Map(
     standings.flatMap((s) => (s.Driver.code ? [[s.Driver.code, s.Driver.driverId] as const] : [])),
   );
-  for (const weekend of weekends) {
-    for (const session of weekend.sessions) {
+  const timed: TimedResults = {};
+  for (const race of races.MRData.RaceTable.Races) {
+    const round = Number(race.round);
+    for (const session of toSessions(race)) {
       if (!TIMED_KINDS.has(session.kind)) continue;
       const key = matchOpenF1Session(session, openF1.sessions);
       const rows = key === null ? undefined : openF1.results[key];
-      if (rows) session.result = toTimedResults(rows, numberToCode, codeToDriverId);
+      if (rows) timed[timedKey(round, session.kind)] = toTimedResults(rows, numberToCode, codeToDriverId);
+    }
+  }
+  return timed;
+};
+
+/** 把 sidecar 的第一名摘要到核心快照的 Session 上。 */
+const attachLeaders = (weekends: RaceWeekend[], timed: TimedResults): void => {
+  for (const weekend of weekends) {
+    for (const session of weekend.sessions) {
+      const first = timed[timedKey(weekend.round, session.kind)]?.[0];
+      if (first) session.leader = first;
     }
   }
 };
@@ -427,15 +450,8 @@ export interface NormaliseInput {
   sprints?: ReadonlyArray<RawSprintResponse>;
   /** 整季排位賽的分頁回應；可省略。 */
   qualifying?: ReadonlyArray<RawQualifyingResponse>;
-  /**
-   * OpenF1 的場次清單、各場次的名次表（以 session_key 為鍵；抓不到的場次不放）
-   * 與車手清單（跨 meeting，供車號對縮寫）；可省略，屆時所有 Session.result 為 null。
-   */
-  openF1Sessions?: {
-    sessions: ReadonlyArray<RawOpenF1Session>;
-    results: Readonly<Record<number, ReadonlyArray<RawOpenF1SessionResult>>>;
-    drivers: ReadonlyArray<Pick<RawOpenF1Driver, 'driver_number' | 'name_acronym'>>;
-  };
+  /** 練習賽／衝刺排位的名次表 sidecar（見 normaliseTimedResults）；可省略，屆時 Session.leader 皆為 null。 */
+  timedResults?: TimedResults;
   fetchedAt: string;
 }
 
@@ -453,7 +469,7 @@ export const normaliseSeason = ({
   results,
   sprints,
   qualifying,
-  openF1Sessions,
+  timedResults,
   fetchedAt,
 }: NormaliseInput): Snapshot => {
   const raceTable = races.MRData.RaceTable;
@@ -471,7 +487,7 @@ export const normaliseSeason = ({
   const completedRound = Number(driverStandings.MRData.StandingsTable.round);
 
   const weekends = raceTable.Races.map(toWeekend(perRound)).sort((a, b) => a.round - b.round);
-  if (openF1Sessions) attachTimedResults(weekends, rawDrivers, openF1Sessions);
+  if (timedResults) attachLeaders(weekends, timedResults);
 
   return {
     season: assertValidSeason(raceTable.season),

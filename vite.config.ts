@@ -17,6 +17,8 @@ export default defineConfig({
          */
         manualChunks: (id) => {
           if (id.includes('node_modules')) return 'vendor';
+          // 練習賽名次表 sidecar 是延遲載入的，各自成 chunk —— 不能併進 data
+          if (id.includes('/src/data/snapshots/timed/')) return undefined;
           if (id.includes('/src/data/snapshots/') || id.includes('/src/data/circuits/')) return 'data';
           return undefined;
         },

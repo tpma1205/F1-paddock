@@ -51,12 +51,6 @@ export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element
       initial="hidden"
       animate="shown"
     >
-      <motion.p className="breadcrumb" variants={item}>
-        <Link to="/teams">車隊</Link>
-        <span aria-hidden="true">/</span>
-        <span>{team.name}</span>
-      </motion.p>
-
       <motion.header className="team-detail__head" variants={item}>
         <TeamLogo team={team} size="hero" />
         <div>

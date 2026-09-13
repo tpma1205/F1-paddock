@@ -9,7 +9,6 @@ import {
   type PointsProgression,
   type QualifyingResult,
   type RaceWeekend,
-  type ResultView,
   type SeasonHighlights,
   type TeammateBattle,
   type Session,
@@ -74,19 +73,6 @@ const statusOf = (session: Session, nowMs: number): SessionStatus => {
   return 'upcoming';
 };
 
-const toTimedResultView = (result: TimedResult, refs: RefIndex): TimedResultView => {
-  const driver = result.driverId === null ? null : (refs.drivers.get(result.driverId) ?? null);
-  return {
-    position: result.position,
-    driverNumber: result.driverNumber,
-    driver,
-    team: driver ? (refs.teamOfDriver.get(driver.id) ?? null) : null,
-    bestLap: result.bestLapMs === null ? null : formatLapMs(result.bestLapMs),
-    gap: result.gapMs === null ? '' : formatGapMs(result.gapMs),
-    laps: result.laps,
-  };
-};
-
 /** 排位賽的最快圈：跑到哪一節就是哪一節的時間。 */
 const qualifyingBest = (q: QualifyingResult): string | null => q.q3 ?? q.q2 ?? q.q1;
 
@@ -97,23 +83,21 @@ const leaderFrom = (driver: DriverRef | null, driverNumber: number | null, time:
 });
 
 /**
- * 已結束場次的第一名。每種場次的 Result 住在不同地方 —— 練習賽與衝刺排位在
- * Session 上、排位賽／正賽／衝刺賽在 Race Weekend 上 —— 這裡把它們收成同一個形狀。
+ * 已結束場次的第一名。每種場次的 Result 住在不同地方 —— 練習賽與衝刺排位
+ * 摘要在 Session 上、排位賽／正賽／衝刺賽在 Race Weekend 上 —— 這裡把它們
+ * 收成同一個形狀。
  */
-const leaderOf = (
-  session: Session,
-  weekend: RaceWeekend,
-  timed: TimedResultView[] | null,
-  refs: RefIndex,
-): SessionLeader | null => {
-  const driverOf = (id: string): DriverRef | null => refs.drivers.get(id) ?? null;
+const leaderOf = (session: Session, weekend: RaceWeekend, refs: RefIndex): SessionLeader | null => {
+  const driverOf = (id: string | null): DriverRef | null => (id === null ? null : (refs.drivers.get(id) ?? null));
   switch (session.kind) {
     case 'fp1':
     case 'fp2':
     case 'fp3':
     case 'sprintQualifying': {
-      const first = timed?.[0];
-      return first ? leaderFrom(first.driver, first.driverNumber, first.bestLap) : null;
+      const first = session.leader;
+      return first
+        ? leaderFrom(driverOf(first.driverId), first.driverNumber, first.bestLapMs === null ? null : formatLapMs(first.bestLapMs))
+        : null;
     }
     case 'qualifying': {
       const first = weekend.qualifying?.[0];
@@ -132,29 +116,50 @@ const leaderOf = (
 
 const toSessionView = (session: Session, weekend: RaceWeekend, nowMs: number, refs: RefIndex): SessionView => {
   const status = statusOf(session, nowMs);
-  const result = session.result?.map((r) => toTimedResultView(r, refs)) ?? null;
   return {
     kind: session.kind,
     startsAt: session.startsAt,
     endsAt: new Date(endOf(session)).toISOString(),
     status,
-    result,
     // 未結束的場次不該有第一名 —— 就算資料有（改期後的殘留），也不顯示
-    leader: status === 'finished' ? leaderOf(session, weekend, result, refs) : null,
+    leader: status === 'finished' ? leaderOf(session, weekend, refs) : null,
   };
 };
+
+/**
+ * sidecar 的名次表 → 已解析車手與車隊、格式化好時間的列。單站頁在載入
+ * sidecar 之後呼叫；解析用的是 View Model 的車手清單，不需要 Snapshot。
+ */
+export const toTimedResultViews = (rows: ReadonlyArray<TimedResult>, viewModel: ViewModel): TimedResultView[] =>
+  rows.map((row) => {
+    const entry = row.driverId === null ? undefined : viewModel.drivers.find((d) => d.driver.id === row.driverId);
+    return {
+      position: row.position,
+      driverNumber: row.driverNumber,
+      driver: entry?.driver ?? null,
+      team: entry?.team ?? null,
+      bestLap: row.bestLapMs === null ? null : formatLapMs(row.bestLapMs),
+      gap: row.gapMs === null ? '' : formatGapMs(row.gapMs),
+      laps: row.laps,
+    };
+  });
 
 const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): WeekendView => {
   const sessions = weekend.sessions.map((session) => toSessionView(session, weekend, nowMs, refs));
   // 每個 Race Weekend 必有正賽（見 jolpica.ts 的 toSessions）；找不到時視為未開始。
   const race = sessions.find((session) => session.kind === 'race');
 
-  const results: ResultView[] | null =
-    weekend.results?.map((result) => ({
-      ...result,
-      driver: refs.drivers.get(result.driverId) ?? fallbackDriver(result.driverId),
-      team: refs.teams.get(result.teamId) ?? fallbackTeam(result.teamId),
-    })) ?? null;
+  const resolve = <T extends { driverId: string; teamId: string }>(row: T) => ({
+    ...row,
+    driver: refs.drivers.get(row.driverId) ?? fallbackDriver(row.driverId),
+    team: refs.teams.get(row.teamId) ?? fallbackTeam(row.teamId),
+  });
+  const results = weekend.results?.map(resolve) ?? null;
+  const sprintResults = weekend.sprintResults?.map(resolve) ?? null;
+  const qualifying = weekend.qualifying?.map(resolve) ?? null;
+
+  // sessions 依時間排序，最後一個已結束的就是最新的
+  const latestFinished = [...sessions].reverse().find((s) => s.status === 'finished');
 
   return {
     round: weekend.round,
@@ -164,7 +169,10 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): Wee
     raceStatus: race?.status ?? 'upcoming',
     msUntilRace: race ? Math.max(0, Date.parse(race.startsAt) - nowMs) : 0,
     results,
+    sprintResults,
+    qualifying,
     podium: (results ?? []).filter(isPodium).slice(0, 3),
+    latestFinishedSession: latestFinished?.kind ?? null,
   };
 };
 

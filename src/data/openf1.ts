@@ -6,7 +6,7 @@
  * 對不上 Jolpica 的 constructorId（"red_bull"）—— 所以用**車手三字母縮寫**
  * 當橋樑：Jolpica 的 `code` 與 OpenF1 的 `name_acronym` 是同一套官方縮寫。
  */
-import type { Session, SessionKind, Snapshot, TimedResult } from '../domain/types.ts';
+import type { Session, SessionKind, TimedResult, TimedResults } from '../domain/types.ts';
 
 export interface RawOpenF1Driver {
   driver_number: number;
@@ -178,24 +178,8 @@ export const indexDriverNumbers = (
 
 /**
  * OpenF1 在直播期間封鎖所有請求（見 fetch 腳本的 carryForwardOpenF1），這時
- * 新快照的場次 Result 會是 null。同一季的上一份快照若有值就補上 —— 已結束
- * 場次的名次表不會再變。新快照已有的值不覆蓋。
+ * 新抓的名次表會缺場次。已結束場次的名次表不會再變，上一份 sidecar 有的
+ * 直接補上；新抓到的優先。
  */
-export const carryForwardTimedResults = (next: Snapshot, previous: Snapshot | null): Snapshot => {
-  if (!previous || previous.season !== next.season) return next;
-  return {
-    ...next,
-    weekends: next.weekends.map((weekend) => {
-      const old = previous.weekends.find((w) => w.round === weekend.round);
-      if (!old) return weekend;
-      return {
-        ...weekend,
-        sessions: weekend.sessions.map((session) =>
-          session.result !== null
-            ? session
-            : { ...session, result: old.sessions.find((s) => s.kind === session.kind)?.result ?? null },
-        ),
-      };
-    }),
-  };
-};
+export const carryForwardTimedResults = (next: TimedResults, previous: TimedResults | null): TimedResults =>
+  previous ? { ...previous, ...next } : next;

@@ -3,9 +3,8 @@ import sessions from './__fixtures__/openf1-sessions.json' with { type: 'json' }
 import fp1Rows from './__fixtures__/openf1-session-result-fp1.json' with { type: 'json' };
 import sqRows from './__fixtures__/openf1-session-result-sq.json' with { type: 'json' };
 import meetingDrivers from './__fixtures__/openf1-drivers-meeting.json' with { type: 'json' };
-import { buildFixtureSnapshot, fixtureInput } from './__fixtures__/buildFixtureSnapshot.ts';
+import { buildFixtureSnapshot, buildFixtureSnapshotWithTimed, fixtureTimedResults } from './__fixtures__/buildFixtureSnapshot.ts';
 import { carryForwardTimedResults, matchOpenF1Session, toTimedResults, TIMED_KINDS } from './openf1.ts';
-import { normaliseSeason } from './jolpica.ts';
 import type { RawOpenF1SessionResult } from './openf1.ts';
 
 const snapshot = buildFixtureSnapshot();
@@ -25,7 +24,7 @@ describe('matchOpenF1Session —— 以開始時間 + 場次種類對到 OpenF1 
 
   it('季前測試（Day 1–3）不會被誤對', () => {
     // 巴林季前測試與任何賽程場次時間都不同，理應對不到
-    const fake = { kind: 'fp1' as const, startsAt: '2026-02-11T07:00:00.000Z', result: null };
+    const fake = { kind: 'fp1' as const, startsAt: '2026-02-11T07:00:00.000Z' };
     expect(matchOpenF1Session(fake, sessions)).toBeNull();
   });
 
@@ -95,51 +94,42 @@ describe('toTimedResults —— OpenF1 名次表 → TimedResult', () => {
   });
 });
 
-describe('normaliseSeason 帶 OpenF1 場次結果', () => {
-  const withResults = normaliseSeason({
-    ...fixtureInput(),
-    openF1Sessions: { sessions, results: { 11354: fp1Rows as RawOpenF1SessionResult[], 11236: sqRows as RawOpenF1SessionResult[] }, drivers: meetingDrivers },
+describe('normaliseTimedResults —— OpenF1 名次表 → sidecar', () => {
+  const timed = fixtureTimedResults();
+
+  it('以 round:kind 為鍵，只有抓到的場次有值', () => {
+    expect(Object.keys(timed).sort()).toEqual(['13:fp1', '2:sprintQualifying']);
+    expect(timed['13:fp1']).toHaveLength(22);
   });
 
-  it('義大利站 FP1 有 22 筆結果，其餘練習賽（未抓）為 null', () => {
-    const w = withResults.weekends.find((x) => x.round === 13)!;
-    expect(w.sessions.find((s) => s.kind === 'fp1')?.result).toHaveLength(22);
-    expect(w.sessions.find((s) => s.kind === 'fp2')?.result).toBeNull();
-  });
-
-  it('正賽／排位／衝刺賽的 Session.result 一律為 null —— 它們的 Result 在 Race Weekend 層', () => {
-    for (const w of withResults.weekends) {
+  it('核心快照只摘要第一名到 Session.leader；其他場次為 null', () => {
+    const snapshotWithTimed = buildFixtureSnapshotWithTimed();
+    const italy13 = snapshotWithTimed.weekends.find((w) => w.round === 13)!;
+    expect(italy13.sessions.find((s) => s.kind === 'fp1')?.leader).toMatchObject({ driverId: 'leclerc', bestLapMs: 83008 });
+    expect(italy13.sessions.find((s) => s.kind === 'fp2')?.leader).toBeNull();
+    for (const w of snapshotWithTimed.weekends) {
       for (const s of w.sessions) {
-        if (!TIMED_KINDS.has(s.kind)) expect(s.result, `${w.round} ${s.kind}`).toBeNull();
+        if (!TIMED_KINDS.has(s.kind)) expect(s.leader, `${w.round} ${s.kind}`).toBeNull();
       }
     }
   });
 
-  it('沒給 OpenF1 場次資料時，所有 Session.result 為 null', () => {
-    for (const w of snapshot.weekends) for (const s of w.sessions) expect(s.result).toBeNull();
+  it('沒給 sidecar 時，所有 Session.leader 為 null', () => {
+    for (const w of snapshot.weekends) for (const s of w.sessions) expect(s.leader).toBeNull();
   });
 });
 
-describe('carryForwardTimedResults —— OpenF1 失效時沿用上一份快照', () => {
-  it('新快照缺的場次結果從舊快照補上；新快照已有的不覆蓋', () => {
-    const previous = normaliseSeason({
-      ...fixtureInput(),
-      openF1Sessions: { sessions, results: { 11354: fp1Rows as RawOpenF1SessionResult[] }, drivers: meetingDrivers },
-    });
-    const next = normaliseSeason({
-      ...fixtureInput(),
-      openF1Sessions: { sessions, results: { 11236: sqRows as RawOpenF1SessionResult[] }, drivers: meetingDrivers },
-    });
+describe('carryForwardTimedResults —— OpenF1 失效時沿用上一份 sidecar', () => {
+  it('上一份有、這次沒抓到的場次補上；這次抓到的優先', () => {
+    const previous = { '13:fp1': [{ driverId: 'old', driverNumber: 1, position: 1, bestLapMs: 1, gapMs: 0, laps: 1 }], '13:fp2': [] };
+    const next = { '13:fp1': [{ driverId: 'new', driverNumber: 1, position: 1, bestLapMs: 2, gapMs: 0, laps: 2 }] };
     const merged = carryForwardTimedResults(next, previous);
-    const italyFp1 = merged.weekends.find((w) => w.round === 13)!.sessions.find((s) => s.kind === 'fp1')!;
-    const chinaSq = merged.weekends.find((w) => w.round === 2)!.sessions.find((s) => s.kind === 'sprintQualifying')!;
-    expect(italyFp1.result).toHaveLength(22);
-    expect(chinaSq.result).toHaveLength(21);
-    expect(merged.weekends.find((w) => w.round === 13)!.sessions.find((s) => s.kind === 'fp2')!.result).toBeNull();
+    expect(merged['13:fp1']?.[0]?.driverId).toBe('new');
+    expect(merged['13:fp2']).toEqual([]);
   });
 
-  it('不同季的舊快照不會被拿來補', () => {
-    const previous = { ...snapshot, season: '2025' };
-    expect(carryForwardTimedResults(snapshot, previous)).toEqual(snapshot);
+  it('沒有上一份時原樣回傳', () => {
+    const next = { '1:fp1': [] };
+    expect(carryForwardTimedResults(next, null)).toBe(next);
   });
 });

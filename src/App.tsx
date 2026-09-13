@@ -109,8 +109,7 @@ export const App = (): JSX.Element => {
               path="/races/:round"
               element={
                 <RacePage
-                  season={viewModel.season}
-                  weekends={viewModel.weekends}
+                  viewModel={viewModel}
                   nextRound={nextRound}
                   nextSessionKind={nextSessionKind}
                   msUntilNext={msUntilNext}

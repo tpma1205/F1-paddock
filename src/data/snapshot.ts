@@ -1,4 +1,4 @@
-import type { Snapshot } from '../domain/types.ts';
+import type { Snapshot, TimedResults } from '../domain/types.ts';
 
 /**
  * 打包進程式的 Snapshot —— 畫面的**底稿**。
@@ -39,3 +39,18 @@ if (bundledSnapshots.length === 0) {
 
 /** 最新一季 —— 供對照表與資產的涵蓋率測試使用；畫面一律用 bundledSnapshots。 */
 export const bundledSnapshot: Snapshot = bundledSnapshots[0]!;
+
+/**
+ * 練習賽／衝刺排位名次表的 sidecar（`snapshots/timed/<season>.json`）——
+ * **延遲載入**，只有單站頁會要。glob 不加 eager 就是各自一個 chunk。
+ * 沒有該季的檔案時回傳空表，畫面顯示「結果尚未取得」。
+ */
+const timedModules = import.meta.glob('./snapshots/timed/*.json', { import: 'default' }) as Record<
+  string,
+  () => Promise<unknown>
+>;
+
+export const loadTimedResults = async (season: string): Promise<TimedResults> => {
+  const load = timedModules[`./snapshots/timed/${season}.json`];
+  return load ? ((await load()) as TimedResults) : {};
+};

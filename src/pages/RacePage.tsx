@@ -1,8 +1,20 @@
 import type { JSX } from 'react';
+import type { ViewModel } from '../domain/types.ts';
 import { SURFACE, NEUTRAL_ACCENT } from '../app/tokens.ts';
 import { Link, useParams } from 'react-router';
 import { motion } from 'motion/react';
-import type { ResultView, SessionKind, WeekendView } from '../domain/types.ts';
+import {
+  timedKey,
+  type QualifyingView,
+  type ResultView,
+  type SessionKind,
+  type SessionView,
+  type TimedResultView,
+  type WeekendView,
+} from '../domain/types.ts';
+import { toTimedResultViews } from '../domain/viewModel.ts';
+import { SessionTabs } from '../app/SessionTabs.tsx';
+import { useTimedResults } from '../app/useTimedResults.ts';
 import { useEntrance } from '../app/motion.ts';
 import { BilingualName } from '../app/BilingualName.tsx';
 import { DriverPhoto } from '../app/DriverPhoto.tsx';
@@ -10,7 +22,7 @@ import { Flag } from '../app/Flag.tsx';
 import { SessionPanel } from '../app/SessionPanel.tsx';
 import { readableOn } from '../app/colour.ts';
 import { localisedCircuit, localisedDriver, localisedRaceWeekend, localisedTeam } from '../data/localisation.ts';
-import { formatRaceDate } from '../app/formatting.ts';
+import { SESSION_LABEL, formatRaceDate } from '../app/formatting.ts';
 
 
 /** Jolpica 的狀態字串 → 介面文字。未列的原樣顯示。 */
@@ -24,8 +36,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 interface RacePageProps {
-  season: string;
-  weekends: WeekendView[];
+  viewModel: ViewModel;
   nextRound: number | null;
   /** View Model 的 Next Session 種類；本頁只在該站是下一站時把它交給場次面板。 */
   nextSessionKind: SessionKind | null;
@@ -35,8 +46,7 @@ interface RacePageProps {
 }
 
 export const RacePage = ({
-  season,
-  weekends,
+  viewModel,
   nextRound,
   nextSessionKind,
   msUntilNext,
@@ -44,8 +54,10 @@ export const RacePage = ({
   timeZoneLabel,
 }: RacePageProps): JSX.Element => {
   const { round } = useParams();
+  const { season, weekends } = viewModel;
   const weekend = weekends.find((w) => String(w.round) === round);
   const { container, item } = useEntrance();
+  const timed = useTimedResults(season);
 
   if (!weekend) {
     return (
@@ -63,12 +75,6 @@ export const RacePage = ({
 
   return (
     <motion.article className="race-detail" variants={container} initial="hidden" animate="shown">
-      <motion.p className="breadcrumb" variants={item}>
-        <Link to="/calendar">賽程表</Link>
-        <span aria-hidden="true">/</span>
-        <span>R{weekend.round}</span>
-      </motion.p>
-
       <motion.header className="race-detail__head" variants={item}>
         <p className="hero__eyebrow">
           {season} 賽季 · 第 {weekend.round} 站
@@ -92,32 +98,207 @@ export const RacePage = ({
         </p>
       </motion.header>
 
-      {weekend.results ? (
+      <motion.div variants={item}>
+        <SessionTabs
+          key={weekend.round}
+          weekend={weekend}
+          timeZone={timeZone}
+          renderPanel={(session) => (
+            <SessionResult
+              session={session}
+              weekend={weekend}
+              timed={timed === null ? null : toTimedResultViews(timed[timedKey(weekend.round, session.kind)] ?? [], viewModel)}
+              timedLoaded={timed !== null}
+            />
+          )}
+        />
+      </motion.div>
+
+      {weekend.raceStatus !== 'finished' && (
+        <SessionPanel
+          weekend={weekend}
+          nextSessionKind={panelNextKind}
+          msUntilNext={msUntilNext}
+          timeZone={timeZone}
+          timeZoneLabel={timeZoneLabel}
+        />
+      )}
+    </motion.article>
+  );
+};
+
+interface SessionResultProps {
+  session: SessionView;
+  weekend: WeekendView;
+  /** 該場次的 sidecar 名次表（已解析）；sidecar 還在載入時為 null。 */
+  timed: TimedResultView[] | null;
+  timedLoaded: boolean;
+}
+
+const NOT_YET = <p className="hero__note">結果尚未取得，下次資料更新時補上。</p>;
+
+/** 一個已結束場次的 Result —— 依場次種類選對的表。 */
+const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultProps): JSX.Element => {
+  switch (session.kind) {
+    case 'race':
+    case 'sprint': {
+      const rows = session.kind === 'race' ? weekend.results : weekend.sprintResults;
+      if (!rows) return NOT_YET;
+      return (
         <>
-          <motion.h2 className="section-title" variants={item}>
-            正賽結果
-          </motion.h2>
+          <h2 className="section-title">{SESSION_LABEL[session.kind]}結果</h2>
           <ol className="results">
-            {weekend.results.map((result) => (
+            {rows.map((result) => (
               <ResultRow key={result.driver.id} result={result} />
             ))}
           </ol>
         </>
-      ) : (
+      );
+    }
+    case 'qualifying': {
+      if (!weekend.qualifying) return NOT_YET;
+      return (
         <>
-          <motion.p className="hero__note" variants={item}>
-            {weekend.raceStatus === 'live' ? '正賽進行中，賽果將於賽後更新。' : '尚未舉行，以下為本週末場次。'}
-          </motion.p>
-          <SessionPanel
-            weekend={weekend}
-            nextSessionKind={panelNextKind}
-            msUntilNext={msUntilNext}
-            timeZone={timeZone}
-            timeZoneLabel={timeZoneLabel}
-          />
+          <h2 className="section-title">排位結果</h2>
+          <ol className="results results--qualifying">
+            {weekend.qualifying.map((row) => (
+              <QualifyingRow key={row.driver.id} row={row} />
+            ))}
+          </ol>
         </>
-      )}
-    </motion.article>
+      );
+    }
+    case 'fp1':
+    case 'fp2':
+    case 'fp3':
+    case 'sprintQualifying': {
+      if (!timedLoaded) return <p className="hero__note" aria-busy="true">載入中…</p>;
+      if (!timed || timed.length === 0) return NOT_YET;
+      return (
+        <>
+          <h2 className="section-title">{SESSION_LABEL[session.kind]}結果</h2>
+          <ol className="results results--timed">
+            {timed.map((row) => (
+              <TimedRow key={`${row.driverNumber}`} row={row} />
+            ))}
+          </ol>
+        </>
+      );
+    }
+  }
+};
+
+const teamStyle = (colour: string | null): React.CSSProperties => {
+  const accent = colour ?? NEUTRAL_ACCENT;
+  return { '--team-colour': accent, '--team-text': readableOn(accent, SURFACE) } as React.CSSProperties;
+};
+
+/** 排位賽一列：名次／車手／Q1／Q2／Q3。被淘汰的節次以「—」呈現。 */
+const QualifyingRow = ({ row }: { row: QualifyingView }): JSX.Element => {
+  const { driver, team } = row;
+  const best = row.q3 ?? row.q2 ?? row.q1;
+  return (
+    <li className="result" style={teamStyle(team.colour)}>
+      <details className="result__details">
+        <summary className="result__row">
+          <span className="result__position">{row.position}</span>
+          <DriverPhoto driver={driver} colour={team.colour ?? NEUTRAL_ACCENT} />
+          <span className="result__driver">
+            <BilingualName
+              canonical={`${driver.givenName} ${driver.familyName}`}
+              localised={localisedDriver(driver.id)}
+              variant="panel"
+            />
+            <span className="result__team">
+              <BilingualName canonical={team.name} localised={localisedTeam(team.id)} />
+            </span>
+          </span>
+          {(['q1', 'q2', 'q3'] as const).map((segment) => (
+            <span key={segment} className="result__cell result__cell--secondary result__cell--time">
+              <span className="result__label">{segment.toUpperCase()}</span>
+              {row[segment] ?? '—'}
+            </span>
+          ))}
+          <span className="result__points">
+            <span className="stat__value stat__value--time">{best ?? '—'}</span>
+            <span className="stat__label">最快圈</span>
+          </span>
+        </summary>
+        <dl className="result__more">
+          {(['q1', 'q2', 'q3'] as const).map((segment) => (
+            <div key={segment}>
+              <dt>{segment.toUpperCase()}</dt>
+              <dd>{row[segment] ?? '—'}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
+    </li>
+  );
+};
+
+/** 練習賽／衝刺排位一列：名次／車手／Best Lap／Gap／圈數。對不到車手的只顯示車號。 */
+const TimedRow = ({ row }: { row: TimedResultView }): JSX.Element => {
+  const { driver, team } = row;
+  const colour = team?.colour ?? null;
+  return (
+    <li className={`result ${row.bestLap === null ? 'result--unclassified' : ''}`} style={teamStyle(colour)}>
+      <details className="result__details">
+        <summary className="result__row">
+          <span className="result__position">{row.position}</span>
+          {driver ? (
+            <DriverPhoto driver={driver} colour={colour ?? NEUTRAL_ACCENT} />
+          ) : (
+            <span className="driver-photo driver-photo--card driver-photo--number" aria-hidden="true">
+              #{row.driverNumber}
+            </span>
+          )}
+          <span className="result__driver">
+            {driver ? (
+              <>
+                <BilingualName
+                  canonical={`${driver.givenName} ${driver.familyName}`}
+                  localised={localisedDriver(driver.id)}
+                  variant="panel"
+                />
+                {team && (
+                  <span className="result__team">
+                    <BilingualName canonical={team.name} localised={localisedTeam(team.id)} />
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="bilingual__canonical">#{row.driverNumber}</span>
+                <span className="result__team">未登錄車手</span>
+              </>
+            )}
+          </span>
+          <span className="result__cell result__cell--secondary">
+            <span className="result__label">差距</span>
+            {row.gap || (row.bestLap === null ? '—' : '')}
+          </span>
+          <span className="result__cell result__cell--secondary">
+            <span className="result__label">圈數</span>
+            {row.laps}
+          </span>
+          <span className="result__points">
+            <span className="stat__value stat__value--time">{row.bestLap ?? '無成績'}</span>
+            <span className="stat__label">最快圈</span>
+          </span>
+        </summary>
+        <dl className="result__more">
+          <div>
+            <dt>差距</dt>
+            <dd>{row.gap || '—'}</dd>
+          </div>
+          <div>
+            <dt>圈數</dt>
+            <dd>{row.laps}</dd>
+          </div>
+        </dl>
+      </details>
+    </li>
   );
 };
 
