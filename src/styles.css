@@ -147,6 +147,53 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------- 路徑導覽 */
+
+/* 只占一列：不換行、過長時尾端截斷 */
+.breadcrumb {
+  margin: -0.5rem 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--text-dim);
+  overflow: hidden;
+}
+
+.breadcrumb__list {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.breadcrumb__item {
+  display: inline;
+  min-width: 0;
+}
+
+.breadcrumb__item + .breadcrumb__item::before {
+  content: '/';
+  margin: 0 0.5rem;
+  color: var(--text-faint);
+  opacity: 0.6;
+}
+
+.breadcrumb a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb a:hover {
+  color: var(--text);
+}
+
+.breadcrumb [aria-current='page'] {
+  color: var(--text);
+  font-weight: 500;
+}
+
 /* 最窄的手機：品牌只留紅色記號，把空間讓給五個連結 */
 @media (max-width: 24rem) {
   .brand__name {

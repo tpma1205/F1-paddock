@@ -5,6 +5,7 @@ import { buildViewModel } from './domain/viewModel.ts';
 import { useNow } from './app/useNow.ts';
 import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/formatting.ts';
 import { ScrollProgress } from './app/ScrollProgress.tsx';
+import { Breadcrumb } from './app/Breadcrumb.tsx';
 import { HomePage } from './pages/HomePage.tsx';
 
 /**
@@ -54,6 +55,8 @@ export const App = (): JSX.Element => {
             <NavLink to="/circuits">賽道</NavLink>
           </nav>
         </header>
+
+        <Breadcrumb viewModel={viewModel} />
 
         <main>
           <Suspense fallback={<div className="page-loading" aria-busy="true" />}>

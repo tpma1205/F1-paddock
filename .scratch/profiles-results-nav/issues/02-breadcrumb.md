@@ -4,12 +4,12 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 段落鏈由 domain 層依路由產生（`breadcrumbFor`），各頁面不自行拼字串
-- [ ] 段落規則：首頁 → 列表頁（車隊／車手／賽道／賽程）→ 實體頁；單站頁的實體段為大獎賽譯名
-- [ ] 最後一段用中文譯名，沒有譯名時用英文名（只中文，不雙語）
-- [ ] 元件為 `nav aria-label="路徑導覽"` + 有序列表，最後一段 `aria-current="page"`，分隔符「/」
-- [ ] 首頁不渲染 Breadcrumb
-- [ ] 窄螢幕單列：`nowrap` + 尾端截斷
-- [ ] 測試掃描 `routesFor` 產出的全部路由，每一條都有段落鏈且末段非空；譯名缺席時回退英文；首頁為空
+- [x] 段落鏈由 domain 層依路由產生（`breadcrumbFor`），各頁面不自行拼字串
+- [x] 段落規則：首頁 → 列表頁（車隊／車手／賽道／賽程）→ 實體頁；單站頁的實體段為大獎賽譯名
+- [x] 最後一段用中文譯名，沒有譯名時用英文名（只中文，不雙語）
+- [x] 元件為 `nav aria-label="路徑導覽"` + 有序列表，最後一段 `aria-current="page"`，分隔符「/」
+- [x] 首頁不渲染 Breadcrumb
+- [x] 窄螢幕單列：`nowrap` + 尾端截斷
+- [x] 測試掃描 `routesFor` 產出的全部路由，每一條都有段落鏈且末段非空；譯名缺席時回退英文；首頁為空
