@@ -7,42 +7,34 @@ export interface Entrance {
 }
 
 /**
- * 全站共用的進場動態。
+ * 全站唯一的進場動態：**首頁倒數板載入時的一次揭示**。
  *
- * 三條規則：
+ * 其餘頁面與區塊不做進場動畫 —— 每個區塊各自淡入上滑是任何儀表板模板的
+ * 預設，不是這個網站的選擇；內容直接在位，滾動時只有賽道會跟著描繪。
+ * 因此 useEntrance 只在 `reveal: true` 時回傳真的位移，否則是「已在位」
+ * 的變體，讓既有的 motion 元件不必逐一拆除也不會動。
  *
- * 1. **只用 transform 與 opacity** —— 這兩者由合成器處理，不觸發重排，
- *    滾動時才不會掉幀。
- * 2. **尊重 `prefers-reduced-motion`** —— 使用者開啟減少動畫時，位移一律
- *    歸零、只保留淡入，而不是整個停用（完全不動會讓元素突兀地出現）。
- * 3. **變體物件保持穩定** —— 倒數計時讓畫面每秒 re-render 一次（一天約
- *    86,400 次）。變體只跟著 reduced 改變，以 useMemo 固定住，避免 Motion
- *    每次都拿到新物件而重新解析。這是節省無謂工作，不是修正可見的 bug。
+ * 規則不變：只用 transform 與 opacity；尊重 prefers-reduced-motion；變體物件
+ * 以 useMemo 固定，倒數每秒 re-render 時 Motion 不會重新解析。
  */
-export const useEntrance = (): Entrance => {
+export const useEntrance = (options: { reveal?: boolean } = {}): Entrance => {
   const reduced = useReducedMotion() ?? false;
+  const reveal = options.reveal === true && !reduced;
 
   return useMemo(
     () => ({
       container: {
         hidden: {},
         shown: {
-          transition: {
-            // 卡片依序錯開，像起跑燈依序亮起，而非整排同時出現。
-            staggerChildren: reduced ? 0 : 0.06,
-            delayChildren: reduced ? 0 : 0.08,
-          },
+          // 倒數板的列依序亮起，像起跑燈
+          transition: { staggerChildren: reveal ? 0.07 : 0, delayChildren: reveal ? 0.1 : 0 },
         },
       },
       item: {
-        hidden: { opacity: 0, y: reduced ? 0 : 18 },
-        shown: {
-          opacity: 1,
-          y: 0,
-          transition: { duration: reduced ? 0.2 : 0.55, ease: [0.16, 1, 0.3, 1] },
-        },
+        hidden: { opacity: reveal ? 0 : 1, y: reveal ? 14 : 0 },
+        shown: { opacity: 1, y: 0, transition: { duration: reveal ? 0.5 : 0, ease: [0.16, 1, 0.3, 1] } },
       },
     }),
-    [reduced],
+    [reveal],
   );
 };

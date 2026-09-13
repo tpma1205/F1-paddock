@@ -47,15 +47,14 @@ export const StandingsSection = ({
       viewport={{ once: true, amount: 0.15 }}
     >
       <motion.header className="standings__head" variants={item}>
+        <h2 className="standings__title">{isFinal ? '最終積分' : '本季戰況'}</h2>
         <p className="hero__eyebrow">
-          {season} 賽季 · {isFinal ? '最終積分' : '本季戰況'}
-          {!isFinal && completedRound !== null && <> · {completedRound} 站後</>}
+          {season} 賽季{!isFinal && completedRound !== null && <>，{completedRound} 站後</>}
         </p>
-        <h2 className="standings__title">Standings</h2>
       </motion.header>
 
       <div className="standings__columns">
-        <StandingsColumn title="車手" titleEn="Drivers" href="/drivers" variants={item}>
+        <StandingsColumn title="車手" href="/drivers" variants={item}>
           {drivers.slice(0, TOP_N).map((entry) => {
             const accent = entry.team?.colour ?? NEUTRAL_ACCENT;
             return (
@@ -74,7 +73,7 @@ export const StandingsSection = ({
           })}
         </StandingsColumn>
 
-        <StandingsColumn title="車隊" titleEn="Teams" href="/teams" variants={item}>
+        <StandingsColumn title="車隊" href="/teams" variants={item}>
           {teams.slice(0, TOP_N).map((team) => (
             <StandingsRow
               key={team.id}
@@ -96,21 +95,17 @@ export const StandingsSection = ({
 
 interface StandingsColumnProps {
   title: string;
-  titleEn: string;
   href: string;
   variants: Entrance['item'];
   children: React.ReactNode;
 }
 
-const StandingsColumn = ({ title, titleEn, href, variants, children }: StandingsColumnProps): JSX.Element => (
+const StandingsColumn = ({ title, href, variants, children }: StandingsColumnProps): JSX.Element => (
   <motion.div className="standings__column" variants={variants}>
     <div className="standings__column-head">
-      <h3>
-        {title}
-        <span>{titleEn}</span>
-      </h3>
+      <h3>{title}</h3>
       <Link to={href} className="standings__more">
-        查看全部 →
+        查看全部
       </Link>
     </div>
     <ol className="standings__list">{children}</ol>

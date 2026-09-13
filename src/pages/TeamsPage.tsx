@@ -15,7 +15,7 @@ export const TeamsPage = ({ season, teams }: TeamsPageProps): JSX.Element => {
   return (
     <motion.section className="listing" variants={container} initial="hidden" animate="shown">
       <motion.header className="listing__head" variants={item}>
-        <p className="hero__eyebrow">{season} 賽季 · 車隊積分榜</p>
+        <p className="hero__eyebrow">{season} 賽季車隊積分榜</p>
         <h1 className="listing__title">Teams</h1>
       </motion.header>
 

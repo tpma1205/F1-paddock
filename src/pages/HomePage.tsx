@@ -23,7 +23,7 @@ interface HomePageProps {
 const PREVIEW_COUNT = 6;
 
 export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps): JSX.Element => {
-  const { container, item } = useEntrance();
+  const { container, item } = useEntrance({ reveal: true });
   const { season, standingsSeason, standingsAreFinal, nextSession, focusWeekend, isOffSeason, drivers, teams, circuits } =
     viewModel;
   const completedRound = viewModel.weekends.filter((w) => w.raceStatus === 'finished').length || null;
@@ -58,8 +58,7 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
         />
         <motion.div className="hero__content" style={parallax ? { y: foregroundY } : {}}>
         <motion.p className="hero__eyebrow" variants={item}>
-          {season} 賽季
-          {focusWeekend && <> · 第 {focusWeekend.round} 站</>}
+          {season} 賽季{focusWeekend && <>第 {focusWeekend.round} 站</>}
         </motion.p>
 
         {isOffSeason || !nextSession ? (
@@ -128,19 +127,19 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
 
       <InsightsSection season={standingsSeason} progression={viewModel.progression} highlights={viewModel.highlights} />
 
-      <PreviewStrip title="車隊" titleEn="Teams" href="/teams" accent={leaderColour ?? undefined}>
+      <PreviewStrip title="車隊" href="/teams" accent={leaderColour ?? undefined}>
         {teams.slice(0, PREVIEW_COUNT).map((team) => (
           <TeamCard key={team.id} team={team} variants={item} />
         ))}
       </PreviewStrip>
 
-      <PreviewStrip title="車手" titleEn="Drivers" href="/drivers" accent={leaderDriverColour ?? undefined}>
+      <PreviewStrip title="車手" href="/drivers" accent={leaderDriverColour ?? undefined}>
         {drivers.slice(0, PREVIEW_COUNT).map((entry) => (
           <DriverCard key={entry.driver.id} entry={entry} colour={entry.team?.colour ?? null} variants={item} />
         ))}
       </PreviewStrip>
 
-      <PreviewStrip title="賽道" titleEn="Circuits" href="/circuits">
+      <PreviewStrip title="賽道" href="/circuits">
         {circuits.slice(0, PREVIEW_COUNT).map((entry) => (
           <CircuitCard key={entry.circuit.id} entry={entry} variants={item} />
         ))}

@@ -59,14 +59,14 @@ export const SessionPanel = ({
               canonical={weekend.circuit.name}
               localised={localisedCircuit(weekend.circuit.id)}
             />
-            <span className="panel__locality">· {weekend.circuit.locality}</span>
+            <span className="panel__locality">{weekend.circuit.locality}</span>
           </p>
         </div>
         <span className="panel__round">R{weekend.round}</span>
       </motion.header>
 
       <motion.p className="panel__caption" variants={item}>
-        本週末所有場次 · {timeZoneLabel}
+        本週末所有場次（{timeZoneLabel}）
       </motion.p>
 
       <ul className="sessions">
@@ -111,7 +111,7 @@ const SessionRow = ({ session, countdownMs, timeZone, variants }: SessionRowProp
         {session.status === 'live' && <span className="pill">進行中</span>}
         {session.status === 'upcoming' && countdownMs !== null && (
           <>
-            即將登場 · 倒數 <strong>{formatCompactCountdown(countdownMs)}</strong>
+            即將登場，倒數 <strong>{formatCompactCountdown(countdownMs)}</strong>
           </>
         )}
         {session.status === 'finished' && (session.leader ? <Leader leader={session.leader} /> : '已結束')}

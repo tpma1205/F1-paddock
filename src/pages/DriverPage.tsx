@@ -29,7 +29,7 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
       <section className="listing">
         <h1 className="listing__title">找不到這位車手</h1>
         <p className="hero__note">
-          <Link to="/drivers">← 回車手列表</Link>
+          <Link to="/drivers">回到車手列表</Link>
         </p>
       </section>
     );
@@ -56,8 +56,7 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
         <DriverPhoto driver={driver} colour={accent} size="hero" />
         <div className="driver-detail__identity">
           <p className="hero__eyebrow">
-            {season} 賽季 · 第 {entry.position} 名
-            {driver.permanentNumber && <> · #{driver.permanentNumber}</>}
+            {season} 賽季第 {entry.position} 名
           </p>
           <h1 className="hero__title hero__title--compact">
             <BilingualName canonical={fullName} localised={localisedDriver(driver.id)} variant="hero" />

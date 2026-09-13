@@ -27,8 +27,8 @@ export const InsightsSection = ({ season, progression, highlights }: InsightsSec
       viewport={{ once: true, amount: 0.15 }}
     >
       <motion.header className="standings__head" variants={item}>
-        <p className="hero__eyebrow">{season} 賽季 · 數據亮點</p>
-        <h2 className="standings__title">Insights</h2>
+        <h2 className="standings__title">數據亮點</h2>
+        <p className="hero__eyebrow">{season} 賽季至今</p>
       </motion.header>
 
       <ul className="highlight-grid">

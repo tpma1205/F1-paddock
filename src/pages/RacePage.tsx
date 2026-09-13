@@ -64,7 +64,7 @@ export const RacePage = ({
       <section className="listing">
         <h1 className="listing__title">找不到這一站</h1>
         <p className="hero__note">
-          <Link to="/calendar">← 回賽程表</Link>
+          <Link to="/calendar">回到賽程表</Link>
         </p>
       </section>
     );
@@ -77,8 +77,8 @@ export const RacePage = ({
     <motion.article className="race-detail" variants={container} initial="hidden" animate="shown">
       <motion.header className="race-detail__head" variants={item}>
         <p className="hero__eyebrow">
-          {season} 賽季 · 第 {weekend.round} 站
-          {race && <> · {formatRaceDate(race.startsAt, timeZone)}</>}
+          {season} 賽季第 {weekend.round} 站
+          {race && <>，{formatRaceDate(race.startsAt, timeZone)}</>}
         </p>
         <h1 className="hero__title hero__title--compact">
           <BilingualName
@@ -369,7 +369,7 @@ const ResultRow = ({ result }: { result: ResultView }): JSX.Element => {
             <dt>時間／狀態</dt>
             <dd>
               {outcome}
-              {result.fastestLap && ' · 最速圈'}
+              {result.fastestLap && '，最速圈'}
             </dd>
           </div>
         </dl>

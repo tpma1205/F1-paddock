@@ -31,7 +31,7 @@ export const CircuitCard = ({ entry, variants }: CircuitCardProps): JSX.Element 
         </span>
         <span className="circuit-card__body">
           <span className="circuit-card__rounds">
-            {weekends.map((w) => `R${w.round}`).join(' · ')}
+            {weekends.map((w) => `R${w.round}`).join('、')}
           </span>
           <BilingualName
             canonical={circuit.name}

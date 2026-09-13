@@ -15,7 +15,7 @@ export const CircuitsPage = ({ season, circuits }: CircuitsPageProps): JSX.Eleme
   return (
     <motion.section className="listing" variants={container} initial="hidden" animate="shown">
       <motion.header className="listing__head" variants={item}>
-        <p className="hero__eyebrow">{season} 賽季 · {circuits.length} 條賽道</p>
+        <p className="hero__eyebrow">{season} 賽季的 {circuits.length} 條賽道</p>
         <h1 className="listing__title">Circuits</h1>
       </motion.header>
 

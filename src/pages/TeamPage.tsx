@@ -32,7 +32,7 @@ export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element
       <section className="listing">
         <h1 className="listing__title">找不到這支車隊</h1>
         <p className="hero__note">
-          <Link to="/teams">← 回車隊列表</Link>
+          <Link to="/teams">回到車隊列表</Link>
         </p>
       </section>
     );
@@ -58,7 +58,7 @@ export const TeamPage = ({ season, teams, battles }: TeamPageProps): JSX.Element
         <TeamLogo team={team} size="hero" />
         <div>
           <p className="hero__eyebrow">
-            {season} 賽季 · 第 {team.position} 名
+            {season} 賽季第 {team.position} 名
           </p>
           <h1 className="hero__title hero__title--compact">
             <BilingualName canonical={team.name} localised={localisedTeam(team.id)} variant="hero" />

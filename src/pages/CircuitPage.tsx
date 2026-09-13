@@ -31,7 +31,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
       <section className="listing">
         <h1 className="listing__title">找不到這條賽道</h1>
         <p className="hero__note">
-          <Link to="/circuits">← 回賽道列表</Link>
+          <Link to="/circuits">回到賽道列表</Link>
         </p>
       </section>
     );
@@ -47,7 +47,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
     <motion.article className="circuit-detail" variants={container} initial="hidden" animate="shown">
       <motion.header className="circuit-detail__head" variants={item}>
         <p className="hero__eyebrow">
-          {season} 賽季 · {weekends.map((w) => `第 ${w.round} 站`).join('、')}
+          {season} 賽季{weekends.map((w) => `第 ${w.round} 站`).join('、')}
         </p>
         <h1 className="hero__title hero__title--compact">
           <BilingualName canonical={circuit.name} localised={localisedCircuit(circuit.id)} variant="hero" />
@@ -74,7 +74,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
           >
             <TrackMap coordinates={outline.coordinates} mode="scroll" title={`${circuit.name} 平面圖`} />
           </button>
-          <figcaption>賽道平面圖 · 紅點為起跑線 · 點擊可放大</figcaption>
+          <figcaption>賽道平面圖，紅點為起跑線。點擊可放大。</figcaption>
         </figure>
       ) : (
         <p className="hero__note">此賽道尚無平面圖，其餘資訊照常提供。</p>
@@ -123,7 +123,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
               <>
                 <strong>{lapRecord.time}</strong>
                 <span>
-                  {lapRecord.driver} · {lapRecord.year}
+                  {lapRecord.driver}，{lapRecord.year}
                 </span>
               </>
             ) : (

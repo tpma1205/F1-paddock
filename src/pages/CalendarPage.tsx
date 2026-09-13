@@ -56,7 +56,7 @@ export const CalendarPage = ({
       <motion.header className="listing__head listing__head--row" variants={item}>
         <div>
           <p className="hero__eyebrow">
-            {season} 賽季 · 已完成 {completed} / {weekends.length} 站
+            {season} 賽季，已完成 {completed} / {weekends.length} 站
           </p>
           <h1 className="listing__title">Calendar</h1>
         </div>
@@ -123,7 +123,7 @@ const CalendarRow = ({ weekend, isNext, timeZone, variants }: CalendarRowProps):
           {weekend.raceStatus === 'live' && <span className="pill">進行中</span>}
           {weekend.raceStatus === 'upcoming' && race && (
             <span className="calendar__countdown">
-              {isNext ? '下一站 · ' : ''}
+              {isNext ? '下一站，' : ''}
               倒數 <strong>{formatCompactCountdown(weekend.msUntilRace)}</strong>
             </span>
           )}

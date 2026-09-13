@@ -80,7 +80,7 @@ export const SessionTabs = ({ weekend, timeZone, renderPanel }: SessionTabsProps
           <p className="hero__note tabs__pending">
             {current.status === 'live'
               ? `${SESSION_SHORT_LABEL[current.kind]}進行中，結果將於結束後更新。`
-              : `${SESSION_SHORT_LABEL[current.kind]}尚未舉行 · ${formatSessionDay(current.startsAt, timeZone)} ${formatSessionClock(current.startsAt, timeZone)}`}
+              : `${SESSION_SHORT_LABEL[current.kind]}尚未舉行，${formatSessionDay(current.startsAt, timeZone)} ${formatSessionClock(current.startsAt, timeZone)}`}
           </p>
         )}
       </div>

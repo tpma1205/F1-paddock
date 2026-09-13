@@ -1,12 +1,18 @@
 /*
  * F1 Paddock 設計系統
  *
- * 兩條規則（見 docs/spec/0001 的「視覺系統」）：
+ * 視覺主題是**圍場裡的計時螢幕**：一列一列、左緣一道車隊色、名次與時間對齊、
+ * 紫色代表全場最快。列表是「列」不是「卡片」——沒有圓角、沒有每張一圈的邊框，
+ * 只有髮線與色條；格狀內容是「磚」，色條在上緣。
+ *
+ * 三條規則（見 docs/spec/0001 的「視覺系統」）：
  *
  * 1. **黑色是分層的，不是純黑。** 純黑會讓所有元素扁在同一個平面上，
  *    而視差與滾動特效需要層次才看得出來。
  * 2. **顏色承載意義。** F1 紅只屬於「網站」（品牌、倒數、狀態、進度）；
- *    車隊代表色只屬於「內容」。兩者不重疊，所以永遠不會打架。
+ *    車隊代表色只屬於「內容」；紫只屬於「最快」。三者不重疊。
+ * 3. **動態只有一次。** 首頁倒數板載入時的揭示是全站唯一的進場動畫；
+ *    其餘區塊不各自淡入。使用者觸發的（切籤、展開、賽道隨滾動描繪）不在此限。
  */
 
 :root {
@@ -24,13 +30,16 @@
   /* 網站骨幹色 —— 不用於內容 */
   --f1-red: #e10600;
   --f1-red-bright: #ff1801;
+  /* 計時螢幕的語意色：紫 = 全場最快。只用在 Best Lap 第一名與最速圈標記。 */
+  --sector-purple: #b07aff;
   /* 同一個紅的 RGB 三元組，供需要透明度的地方使用，避免另外寫死一組數字 */
   --f1-red-rgb: 225 6 0;
 
   --font-display: 'Titillium Web', 'Noto Sans TC', system-ui, -apple-system, sans-serif;
   --font-body: 'Noto Sans TC', 'Titillium Web', system-ui, -apple-system, sans-serif;
 
-  --radius: 14px;
+  /* 銳角 —— 計時螢幕與碳纖維的語言，不是圓角卡片。狀態 pill 是唯一例外。 */
+  --radius: 2px;
   --gutter: clamp(1.25rem, 5vw, 4rem);
 
   color-scheme: dark;
@@ -134,7 +143,6 @@ body {
 
   .brand__name {
     font-size: 0.75rem;
-    letter-spacing: 0.12em;
   }
 
   .nav {
@@ -224,7 +232,7 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.875rem;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.02em;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -260,13 +268,9 @@ body {
 }
 
 .hero__eyebrow {
-  margin: 0 0 1rem;
-  font-family: var(--font-display);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  letter-spacing: 0.18em;
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
   color: var(--text-dim);
-  text-transform: uppercase;
 }
 
 .hero__title {
@@ -364,7 +368,7 @@ body {
 
 .panel {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border-top: 2px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -397,8 +401,9 @@ body {
   color: var(--text-faint);
 }
 
-/* 分隔點與地名視為一體，避免換行時分隔點孤懸在行尾 */
+/* 地名接在賽道名後，以間距而非符號分隔 */
 .panel__locality {
+  margin-left: 0.6rem;
   white-space: nowrap;
 }
 
@@ -407,7 +412,7 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.9375rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: var(--text-dim);
 }
 
@@ -415,7 +420,7 @@ body {
   margin: 0;
   padding: 0.875rem clamp(1rem, 3vw, 1.75rem);
   font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
   background: var(--line-soft);
 }
@@ -502,7 +507,7 @@ body {
 
 .session__leader-pos {
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -517,7 +522,7 @@ body {
   font-family: var(--font-display);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
-  color: var(--text);
+  color: var(--sector-purple);
 }
 
 /* Next Session —— 浮起、紅色標籤、左緣紅條 */
@@ -563,7 +568,7 @@ body {
 .bilingual--hero .bilingual__localised {
   margin-top: 0.65rem;
   font-size: clamp(1.0625rem, 2.8vw, 1.75rem);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
 }
 
 .bilingual--panel .bilingual__localised {
@@ -610,7 +615,7 @@ body {
   color: #fff;
   font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   line-height: 1.6;
 }
 
@@ -632,7 +637,7 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.8125rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--text-dim);
 }
 
@@ -710,14 +715,15 @@ body {
   font-size: clamp(2rem, 6vw, 3.5rem);
 }
 
+/* 區塊標題：中文即標題，左側一道紅色記號標出區段起點 —— 像計時螢幕的分段 */
 .section-title {
   margin: clamp(2rem, 5vw, 3rem) 0 1rem;
-  font-family: var(--font-display);
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--f1-red);
+  font-family: var(--font-body);
   font-weight: 700;
-  font-size: 0.8125rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--text-dim);
+  font-size: 1.0625rem;
+  line-height: 1.2;
 }
 
 /* ------------------------------------------------------------ 車隊卡片 */
@@ -749,27 +755,24 @@ body {
   grid-template-rows: auto auto;
   gap: 0.75rem 1rem;
   align-items: center;
-  padding: 1.25rem 1.25rem 1.25rem 1.5rem;
+  padding: 1.5rem 1.25rem 1.25rem;
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--radius);
   color: inherit;
   text-decoration: none;
   overflow: hidden;
-  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .team-card::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
+  inset: 0 0 auto 0;
+  height: 4px;
   background: var(--team-colour);
 }
 
 .team-card:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--team-colour) 45%, var(--line));
+  background: var(--raised);
 }
 
 .team-card__position {
@@ -818,7 +821,7 @@ body {
   flex-shrink: 0;
   background: #fff;
   border: 1px solid color-mix(in srgb, var(--team-colour) 35%, #fff);
-  border-radius: 10px;
+  border-radius: var(--radius);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--team-colour) 18%, transparent),
     0 0 24px -8px color-mix(in srgb, var(--team-colour) 55%, transparent);
   overflow: hidden;
@@ -834,7 +837,7 @@ body {
   width: 8.5rem;
   height: 5.5rem;
   padding: 0.85rem 1.25rem;
-  border-radius: 14px;
+  border-radius: var(--radius);
 }
 
 .team-logo img {
@@ -848,8 +851,7 @@ body {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 0.875rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   text-align: center;
   line-height: 1.1;
   white-space: nowrap;
@@ -877,7 +879,7 @@ body {
 
 .stat__label {
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -925,9 +927,8 @@ body {
   grid-template-columns: auto 1fr;
   gap: 0.75rem 1rem;
   align-items: center;
-  padding: 1.25rem;
+  padding: 1.5rem 1.25rem 1.25rem;
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -935,7 +936,7 @@ body {
 .driver-card::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: 0 0 auto 0;
   width: 4px;
   background: var(--team-colour);
 }
@@ -1000,7 +1001,7 @@ body {
     var(--raised) 100%
   );
   border: 1px solid color-mix(in srgb, var(--team-colour) 40%, var(--line));
-  border-radius: 12px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 
@@ -1012,7 +1013,7 @@ body {
 .driver-photo--hero {
   width: clamp(9rem, 22vw, 13rem);
   height: clamp(9rem, 22vw, 13rem);
-  border-radius: 18px;
+  border-radius: var(--radius);
   box-shadow: 0 0 40px -12px color-mix(in srgb, var(--team-colour) 70%, transparent);
 }
 
@@ -1029,7 +1030,7 @@ body {
   font-family: var(--font-display);
   font-weight: 900;
   font-size: 1.125rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
 }
 
 .driver-photo--hero.driver-photo--plate {
@@ -1042,9 +1043,7 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  border-top: 1px solid var(--line);
 }
 
 .driver-row {
@@ -1056,27 +1055,18 @@ body {
   grid-template-columns: 2.5rem auto 1fr auto;
   gap: 1rem;
   align-items: center;
-  padding: 0.75rem 1.25rem 0.75rem 1.5rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  padding: 0.75rem 1rem 0.75rem 1.25rem;
+  background: none;
+  border: 0;
+  border-left: 3px solid var(--team-colour);
+  border-bottom: 1px solid var(--line-soft);
+  border-radius: 0;
   color: inherit;
   text-decoration: none;
-  overflow: hidden;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
-
-.driver-row::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--team-colour);
 }
 
 .driver-row:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--team-colour) 45%, var(--line));
+  background: var(--surface);
 }
 
 .driver-row__position {
@@ -1098,7 +1088,7 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 0.8125rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--team-text);
 }
 
@@ -1173,20 +1163,23 @@ body {
 
 /* ---------------------------------------------------------------- 資料名片 */
 
-/* 年齡／國籍／車號／資歷 —— 一列小卡，缺哪個欄位就少一格 */
+/* 年齡／國籍／車號／資歷 —— 一列規格，以髮線分隔；缺哪個欄位就少一格 */
 .facts {
   margin: 1.5rem 0 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  border-top: 1px solid var(--line);
 }
 
 .facts__item {
   min-width: 7.5rem;
-  padding: 0.7rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  padding: 0.75rem 1.5rem 0.75rem 0;
+  margin-right: 1.5rem;
+  border-right: 1px solid var(--line-soft);
+}
+
+.facts__item:last-child {
+  border-right: 0;
 }
 
 .facts__item dt {
@@ -1312,17 +1305,16 @@ body {
   flex-direction: column;
   height: 100%;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border-top: 4px solid var(--line);
   border-radius: var(--radius);
   color: inherit;
   text-decoration: none;
   overflow: hidden;
-  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .circuit-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--text-faint);
+  background: var(--raised);
+  border-top-color: var(--text-faint);
 }
 
 /*
@@ -1428,7 +1420,7 @@ body {
 .circuit-detail__figure figcaption {
   margin-top: 0.75rem;
   font-size: 0.75rem;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
   text-align: center;
 }
@@ -1450,7 +1442,7 @@ body {
 .circuit-detail__facts dt {
   margin-bottom: 0.5rem;
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -1536,9 +1528,7 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  border-top: 1px solid var(--line);
 }
 
 .calendar__row {
@@ -1547,19 +1537,17 @@ body {
   grid-template-columns: 3rem 5.5rem 1fr auto;
   gap: 1rem;
   align-items: center;
-  padding: 0.85rem 1.25rem 0.85rem 1.5rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  padding: 0.85rem 1rem 0.85rem 1.25rem;
+  background: none;
+  border: 0;
   border-left: 3px solid transparent;
-  border-radius: var(--radius);
+  border-bottom: 1px solid var(--line-soft);
   color: inherit;
   text-decoration: none;
-  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .calendar__row:hover {
-  transform: translateY(-2px);
-  border-color: var(--text-faint);
+  background: var(--surface);
 }
 
 /* 已完賽 —— 變暗但可讀，與場次面板同一套語言 */
@@ -1713,19 +1701,18 @@ body {
   margin: 0;
   padding: 0;
   list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  border-top: 1px solid var(--line);
 }
 
 .result {
   --team-colour: var(--text-dim);
   --team-text: var(--text-dim);
 
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.result:hover {
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
 }
 
 .result__details summary {
@@ -1750,7 +1737,7 @@ body {
   content: '';
   position: absolute;
   inset: 0 auto 0 0;
-  width: 4px;
+  width: 3px;
   background: var(--team-colour);
 }
 
@@ -1802,7 +1789,7 @@ body {
   font-family: var(--font-body);
   font-weight: 400;
   font-size: 0.625rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -1816,11 +1803,11 @@ body {
   width: fit-content;
   padding: 0 0.35rem;
   border-radius: 4px;
-  background: #b64bd6;
-  color: #fff;
+  background: color-mix(in srgb, var(--sector-purple) 18%, transparent);
+  color: var(--sector-purple);
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
 }
 
 .result__points {
@@ -1937,6 +1924,12 @@ body {
   padding: 1.5rem 0;
 }
 
+/* 練習賽與排位賽的第一名：全場最快，紫色 */
+.results--timed .result:first-child .stat__value--time,
+.results--qualifying .result:first-child .stat__value--time {
+  color: var(--sector-purple);
+}
+
 /* 桌機：欄位全部攤平，展開機制停用 */
 .result__more {
   display: none;
@@ -1972,7 +1965,7 @@ body {
 
   .result__more dt {
     font-size: 0.625rem;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.02em;
     color: var(--text-faint);
   }
 
@@ -2049,7 +2042,7 @@ body {
 
 .standings__column {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border-top: 2px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -2076,8 +2069,7 @@ body {
   font-family: var(--font-display);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -2111,7 +2103,6 @@ body {
   border-top: 1px solid var(--line-soft);
   color: inherit;
   text-decoration: none;
-  transition: background-color 0.15s ease;
 }
 
 .standings__row::before {
@@ -2195,8 +2186,7 @@ body {
   font-family: var(--font-display);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -2257,9 +2247,8 @@ body {
   --team-colour: var(--text-dim);
 
   position: relative;
-  padding: 1rem 1.25rem 1.25rem 1.4rem;
+  padding: 1.25rem 1.25rem 1.25rem;
   background: var(--surface);
-  border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -2267,8 +2256,8 @@ body {
 .highlight::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
+  inset: 0 0 auto 0;
+  height: 4px;
   background: var(--team-colour);
 }
 
@@ -2276,7 +2265,7 @@ body {
   display: block;
   margin-bottom: 0.75rem;
   font-size: 0.6875rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.02em;
   color: var(--text-faint);
 }
 
@@ -2406,7 +2395,7 @@ body {
   font-family: var(--font-display);
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
 }
 
 /* Tooltip：跟著十字線走；靜止時停在最新一站 */
@@ -2418,7 +2407,7 @@ body {
   padding: 0.6rem 0.75rem;
   background: var(--raised);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius);
   font-size: 0.75rem;
   pointer-events: none;
   z-index: 2;
@@ -2434,7 +2423,7 @@ body {
 .chart__tooltip-title {
   margin: 0 0 0.35rem;
   color: var(--text-faint);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
 }
 
 .chart__tooltip-rows {
@@ -2535,7 +2524,7 @@ body {
 
   padding: 1.25rem;
   background: var(--surface);
-  border: 1px solid var(--line);
+  border-top: 2px solid var(--line);
   border-radius: var(--radius);
 }
 
