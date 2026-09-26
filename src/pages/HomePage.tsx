@@ -110,6 +110,7 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
       {focusWeekend && nextSession && (
         <SessionPanel
           weekend={focusWeekend}
+          detailHref={`/races/${focusWeekend.round}`}
           nextSessionKind={nextSession.session.kind}
           msUntilNext={nextSession.msUntilStart}
           timeZone={timeZone}

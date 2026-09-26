@@ -1,4 +1,5 @@
 import { useId, useState, type JSX, type KeyboardEvent } from 'react';
+import { useLocation } from 'react-router';
 import type { SessionKind, SessionView, WeekendView } from '../domain/types.ts';
 import { SESSION_SHORT_LABEL, formatSessionClock, formatSessionDay } from './formatting.ts';
 
@@ -18,13 +19,24 @@ interface SessionTabsProps {
 /**
  * 單站頁的場次分頁籤：正賽｜排位賽｜FP3｜FP2｜FP1。
  *
- * 預設籤由 View Model 的 latestFinishedSession 決定，元件不自己找。未結束的
+ * 預設籤由 View Model 的 latestFinishedSession 決定，元件不自己找；網址帶
+ * `#fp1` 這類 hash（從首頁場次面板點進來）且該場已結束時，改停在那一籤。未結束的
  * 場次籤**停用**（滑鼠與鍵盤一致：點不到、方向鍵也跳過）並在籤上標開始時間。
- * 切籤**不改網址** —— 一站一個網址（ADR-0002）。
+ * 切籤**不改網址** —— 一站一個網址（ADR-0002）；hash 只是入口，不是路由。
  */
 export const SessionTabs = ({ weekend, timeZone, renderPanel }: SessionTabsProps): JSX.Element => {
   const tabs = TAB_ORDER.flatMap((kind) => weekend.sessions.filter((s) => s.kind === kind));
-  const [selected, setSelected] = useState<SessionKind>(weekend.latestFinishedSession ?? tabs[0]?.kind ?? 'race');
+  const { hash } = useLocation();
+  const linked = tabs.find((t) => `#${t.kind}` === hash && t.status === 'finished')?.kind;
+  const initial = linked ?? weekend.latestFinishedSession ?? tabs[0]?.kind ?? 'race';
+  const [selected, setSelected] = useState<SessionKind>(initial);
+  // 同一頁內只改 hash（例如瀏覽器上一頁）時，分頁跟著換 —— 在 render 期間同步
+  // 而非 useEffect，避免先畫舊籤再跳
+  const [seenHash, setSeenHash] = useState(hash);
+  if (hash !== seenHash) {
+    setSeenHash(hash);
+    setSelected(initial);
+  }
   const baseId = useId();
   const current = tabs.find((t) => t.kind === selected) ?? tabs[0];
 

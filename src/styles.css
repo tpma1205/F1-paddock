@@ -374,6 +374,7 @@ body {
 }
 
 .panel__head {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -434,6 +435,7 @@ body {
 }
 
 .session {
+  position: relative;
   display: grid;
   grid-template-columns: 5.5rem minmax(4.5rem, auto) 1fr;
   align-items: center;
@@ -495,6 +497,61 @@ body {
 .session--finished .session__label {
   color: var(--text-faint);
   font-weight: 600;
+}
+
+/*
+ * 首頁面板是入口：標題列與已結束的場次列整列可點。做法是讓連結的 ::after
+ * 撐滿父層（父層 position: relative），可點範圍是整列，而語意上仍只有一個連結。
+ */
+.panel__link,
+.session__link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.panel__link::after,
+.session__link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.panel__link:focus-visible,
+.session__link:focus-visible {
+  outline: none;
+}
+
+.panel__head:has(.panel__link:focus-visible),
+.session--link:has(.session__link:focus-visible) {
+  outline: 2px solid var(--f1-red);
+  outline-offset: -2px;
+}
+
+.panel__head:has(.panel__link):hover,
+.session--link:hover {
+  background: var(--raised);
+}
+
+.session--link:hover .session__label {
+  color: var(--text);
+}
+
+.panel__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem clamp(1rem, 3vw, 1.75rem);
+  border-top: 1px solid var(--line);
+  font-size: 0.875rem;
+}
+
+.panel__foot a {
+  color: var(--f1-red-bright);
+  text-decoration: none;
+}
+
+.panel__foot a:hover {
+  text-decoration: underline;
 }
 
 /* 已結束場次的第一名 —— 縮寫用顯示字型，時間等寬數字 */

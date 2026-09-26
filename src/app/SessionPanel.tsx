@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import type { JSX } from 'react';
+import { Link } from 'react-router';
 import type { SessionKind, SessionLeader, SessionView, WeekendView } from '../domain/types.ts';
 import { Flag } from './Flag.tsx';
 import { BilingualName } from './BilingualName.tsx';
@@ -19,6 +20,12 @@ interface SessionPanelProps {
   msUntilNext: number;
   timeZone: string;
   timeZoneLabel: string;
+  /**
+   * 這一站的詳細頁（`/races/15`）。有值時面板變成入口：標題列連到詳細頁、
+   * 已結束的場次列連到該場次的分頁（`/races/15#fp1`），底部連到全季賽程。
+   * 單站頁自己也用這個面板，那裡不傳 —— 連回自己沒有意義。
+   */
+  detailHref?: string;
 }
 
 /**
@@ -33,6 +40,7 @@ export const SessionPanel = ({
   msUntilNext,
   timeZone,
   timeZoneLabel,
+  detailHref,
 }: SessionPanelProps): JSX.Element => {
   const { container, item } = useEntrance();
 
@@ -48,11 +56,22 @@ export const SessionPanel = ({
         <Flag country={weekend.circuit.country} />
         <div className="panel__title">
           <h2>
-            <BilingualName
-              canonical={weekend.name}
-              localised={localisedRaceWeekend(weekend.name)}
-              variant="panel"
-            />
+            {detailHref ? (
+              // 整列可點：連結的 ::after 撐滿標題列（見 .panel__link）
+              <Link to={detailHref} className="panel__link">
+                <BilingualName
+                  canonical={weekend.name}
+                  localised={localisedRaceWeekend(weekend.name)}
+                  variant="panel"
+                />
+              </Link>
+            ) : (
+              <BilingualName
+                canonical={weekend.name}
+                localised={localisedRaceWeekend(weekend.name)}
+                variant="panel"
+              />
+            )}
           </h2>
           <p>
             <BilingualName
@@ -77,9 +96,17 @@ export const SessionPanel = ({
             countdownMs={session.kind === nextSessionKind ? msUntilNext : null}
             timeZone={timeZone}
             variants={item}
+            href={detailHref && session.status === 'finished' ? `${detailHref}#${session.kind}` : null}
           />
         ))}
       </ul>
+
+      {detailHref && (
+        <motion.footer className="panel__foot" variants={item}>
+          <Link to={detailHref}>這一站的完整結果</Link>
+          <Link to="/calendar">全季賽程</Link>
+        </motion.footer>
+      )}
     </motion.section>
   );
 };
@@ -90,17 +117,26 @@ interface SessionRowProps {
   countdownMs: number | null;
   timeZone: string;
   variants: Entrance['item'];
+  /** 已結束場次的分頁連結；null 表示這一列不可點。 */
+  href: string | null;
 }
 
-const SessionRow = ({ session, countdownMs, timeZone, variants }: SessionRowProps): JSX.Element => {
+const SessionRow = ({ session, countdownMs, timeZone, variants, href }: SessionRowProps): JSX.Element => {
   const isNext = countdownMs !== null;
-  const classes = ['session', `session--${session.status}`, isNext ? 'session--next' : '']
+  const classes = ['session', `session--${session.status}`, isNext ? 'session--next' : '', href ? 'session--link' : '']
     .filter(Boolean)
     .join(' ');
 
   return (
     <motion.li className={classes} variants={variants}>
-      <span className="session__label">{SESSION_SHORT_LABEL[session.kind]}</span>
+      {href ? (
+        // 整列可點：連結的 ::after 撐滿這一列（見 .session__link）
+        <Link to={href} className="session__label session__link">
+          {SESSION_SHORT_LABEL[session.kind]}
+        </Link>
+      ) : (
+        <span className="session__label">{SESSION_SHORT_LABEL[session.kind]}</span>
+      )}
 
       <span className="session__time">
         <span className="session__day">{formatSessionDay(session.startsAt, timeZone)}</span>
