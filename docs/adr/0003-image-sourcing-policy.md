@@ -28,4 +28,4 @@
 
 實測於馬德里自由練習進行中：OpenF1 對**所有**未認證請求回 401，連歷史資料與 `sessions?year=` 也擋（回應原文：「Live F1 session in progress. Global API access (including past sessions) is restricted to authenticated users until the session ends.」）。改查已結束的 session 無法繞過。
 
-決定：抓取腳本在 OpenF1 失敗時**沿用上一份快照的代表色與照片**（合成為與 OpenF1 回應同形的清單餵給 normalise），而非產出無顏色的快照。顏色與照片一週內幾乎不變，沿用遠好過清空。週排程落在週二、不會撞到直播，但 `workflow_dispatch` 可能——這層保護讓任何時間手動觸發都安全。
+決定：抓取腳本在 OpenF1 失敗時**沿用上一份快照的代表色與照片**（合成為與 OpenF1 回應同形的清單餵給 normalise），而非產出無顏色的快照。顏色與照片幾乎不變，沿用遠好過清空。每天排程落在台北時間上午、極少撞到直播，但比賽日的手動觸發可能——這層保護讓任何時間觸發都安全。

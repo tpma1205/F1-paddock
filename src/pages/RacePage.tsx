@@ -135,7 +135,7 @@ interface SessionResultProps {
   timedLoaded: boolean;
 }
 
-const NOT_YET = <p className="hero__note">結果尚未取得，下次資料更新時補上。</p>;
+const NOT_YET = <p className="hero__note">結果還沒抓到。資料每天更新一次，這一場會在下一次更新時出現。</p>;
 
 /** 一個已結束場次的 Result —— 依場次種類選對的表。 */
 const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultProps): JSX.Element => {

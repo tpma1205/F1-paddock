@@ -13,7 +13,7 @@ npm run dev       # http://localhost:5173/F1-paddock/
 ```
 
 ```bash
-npm test              # 227 個測試，不打網路
+npm test              # 289 個測試，不打網路
 npm run typecheck     # tsc --noEmit
 npm run build         # 型別檢查 → vite build → 為每個路由產生實體 HTML
 npm run preview       # 用靜態伺服器檢視 dist/
@@ -25,9 +25,11 @@ npm run preview       # 用靜態伺服器檢視 dist/
 
 | 時機 | 行為 |
 |---|---|
-| **每週二台北時間 10:00** | 自動抓取 → 建置 → 部署（正賽多在週日，週二賽果已定案） |
+| **每天一次**（台北時間 11:17 前後） | 自動抓取 → 建置 → 部署 |
 | **推 code 到 `main`** | 同上 |
 | **手動** | GitHub → Actions → Deploy → **Run workflow** |
+
+排程不訂整點：實測 `0 2 * * *` 會被 GitHub 的排程佇列延遲五小時。
 
 抓取失敗時沿用既有快照繼續建置，第三方服務的故障不會讓部署紅字。OpenF1 在直播期間會封鎖所有未認證請求，這時沿用上一份快照的代表色與照片。
 
