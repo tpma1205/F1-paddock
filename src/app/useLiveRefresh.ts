@@ -11,6 +11,19 @@ const browserFetchJson = async (url: string): Promise<unknown> => {
   return response.json();
 };
 
+/**
+ * `no-cors` 的請求只要伺服器回應了（任何狀態碼）就會 resolve 成 opaque response，
+ * 完全斷線才會 reject —— 用來分辨 OpenF1「回 401 但沒有 CORS 標頭」與「連不上」。
+ */
+const browserProbeReachable = async (url: string): Promise<boolean> => {
+  try {
+    await fetch(url, { mode: 'no-cors' });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export interface LiveRefresh {
   /** 打包快照疊上補抓結果；沒補抓過就是原本的陣列。 */
   snapshots: Snapshot[];
@@ -53,7 +66,7 @@ export const useLiveRefresh = (bundled: Snapshot[], now: Date): LiveRefresh => {
     try {
       // 打包的 sidecar 是疊加的底：已有的名次表不該被誤判成待補
       const base = { ...(await loadTimedResults(season)), ...timed };
-      const outcome = await refreshResults({ snapshot: current, timed: base, now: pressNow, fetchJson: browserFetchJson });
+      const outcome = await refreshResults({ snapshot: current, timed: base, now: pressNow, fetchJson: browserFetchJson, probeReachable: browserProbeReachable });
       if (outcome.changed) {
         setOverrides((previous) => new Map(previous).set(season, outcome.snapshot));
         setTimed(outcome.timed);

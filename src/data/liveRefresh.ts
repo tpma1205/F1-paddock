@@ -167,6 +167,12 @@ export interface RefreshInput {
   now: Date;
   /** 成功回傳解析後的 JSON；非 2xx 丟 HttpError；網路失敗丟任何其他錯誤。 */
   fetchJson: (url: string) => Promise<unknown>;
+  /**
+   * 伺服器連不連得到（不管回應內容）。OpenF1 在直播期間的 401 **沒有 CORS 標頭**，
+   * 瀏覽器的 fetch 看不到狀態碼、只會丟網路錯誤；`fetchJson` 對 OpenF1 丟出非 HttpError
+   * 時，用它區分「被封鎖」（連得到）與「真的斷線」。測試與 Node 可省略。
+   */
+  probeReachable?: ((url: string) => Promise<boolean>) | undefined;
 }
 
 const JOLPICA_ENDPOINT: Record<ProvisionalKind, string> = {
@@ -193,7 +199,7 @@ interface OfficialResults {
  * 只有 OpenF1。積分榜只從 Jolpica 取，且站次落後就丟棄。任何失敗都保留原資料。
  * 請求依序送出，總數不超過 MAX_REQUESTS_PER_REFRESH。
  */
-export const refreshResults = async ({ snapshot, timed, now, fetchJson }: RefreshInput): Promise<RefreshOutcome> => {
+export const refreshResults = async ({ snapshot, timed, now, fetchJson, probeReachable }: RefreshInput): Promise<RefreshOutcome> => {
   const pending = findPending(snapshot, timed, now);
   if (pending.sessions.length === 0 && !pending.standingsBehind) {
     return { snapshot, timed, changed: false, nothingPending: true, requests: 0, notes: [] };
@@ -274,8 +280,15 @@ export const refreshResults = async ({ snapshot, timed, now, fetchJson }: Refres
         }
       }
     } catch (error) {
-      if (error instanceof HttpError && error.status === 401) notes.push({ kind: 'live-session' });
-      else notes.push({ kind: 'error', detail: describeError(error) });
+      if (error instanceof HttpError && error.status === 401) {
+        notes.push({ kind: 'live-session' });
+      } else if (!(error instanceof HttpError) && probeReachable && (await probeReachable(OPENF1))) {
+        // 連得到卻讀不到回應 = 回應被 CORS 擋掉，直播期間的 401 正是這樣（見 RefreshInput.probeReachable）
+        requests += 1;
+        notes.push({ kind: 'live-session' });
+      } else {
+        notes.push({ kind: 'error', detail: describeError(error) });
+      }
     }
 
     const missing = needOpenF1.filter((kind) =>

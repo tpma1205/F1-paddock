@@ -63,8 +63,13 @@ const openF1RaceRows = [
   { position: 2, driver_number: 1, number_of_laps: 53, dnf: false, dns: false, dsq: false, duration: 5403, gap_to_leader: 2.5 },
 ];
 
-const run = (net: ReturnType<typeof fakeNet>, snapshot = stale(), timed = timedFull()): Promise<RefreshOutcome> =>
-  refreshResults({ snapshot, timed, now: NOW, fetchJson: net.fetchJson });
+const run = (
+  net: ReturnType<typeof fakeNet>,
+  snapshot = stale(),
+  timed = timedFull(),
+  probeReachable?: (url: string) => Promise<boolean>,
+): Promise<RefreshOutcome> =>
+  refreshResults({ snapshot, timed, now: NOW, fetchJson: net.fetchJson, probeReachable });
 
 const standings13 = [
   ['driverstandings', () => driverStandings],
@@ -136,6 +141,31 @@ describe('refreshResults —— 立即更新', () => {
     expect(out.changed).toBe(false);
     expect(out.snapshot).toBe(before);
     expect(out.snapshot.fetchedAt).toBe('2026-09-10T00:00:00.000Z');
+  });
+
+  it('瀏覽器看不到 OpenF1 的 401（回應沒有 CORS 標頭，fetch 只會丟網路錯誤）：伺服器連得到就視為場次進行中', async () => {
+    const net = fakeNet([
+      ['/results', () => empty],
+      ['/qualifying', () => empty],
+      ['sessions?year', () => { throw new TypeError('Failed to fetch'); }],
+    ]);
+    const probed: string[] = [];
+    const out = await run(net, stale(), timedFull(), async (url) => { probed.push(url); return true; });
+    expect(out.notes).toContainEqual({ kind: 'live-session' });
+    expect(out.notes.some((n) => n.kind === 'error')).toBe(false);
+    expect(probed).toHaveLength(1);
+    expect(probed[0]).toContain('openf1');
+  });
+
+  it('OpenF1 連不到（探測也失敗）：才是真的網路錯誤', async () => {
+    const net = fakeNet([
+      ['/results', () => empty],
+      ['/qualifying', () => empty],
+      ['sessions?year', () => { throw new TypeError('Failed to fetch'); }],
+    ]);
+    const out = await run(net, stale(), timedFull(), async () => false);
+    expect(out.notes.some((n) => n.kind === 'error')).toBe(true);
+    expect(out.notes).not.toContainEqual({ kind: 'live-session' });
   });
 
   it('兩邊都還沒有資料：維持原樣並說明是「尚無資料」，不是錯誤', async () => {
