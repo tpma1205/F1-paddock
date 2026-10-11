@@ -297,6 +297,24 @@ export interface ResultView extends RaceResult {
   team: TeamRef;
 }
 
+/** 暫定結果的一列 + 解析後的車手與車隊、格式化好的時間。缺的欄位為 null／空字串，畫面顯示「—」。 */
+export interface ProvisionalView {
+  position: number;
+  driverNumber: number;
+  driver: DriverRef | null;
+  team: TeamRef | null;
+  laps: number;
+  outcome: ProvisionalOutcome;
+  /** 正賽／衝刺賽：冠軍為總時間 `1:32:15.123`，其餘為 `+5.477` 或落圈原文；排位賽為 null。 */
+  time: string | null;
+  /** 排位賽的 Q1–Q3（`1:23.008`），未參加的節為 null；其他場次為 null。 */
+  segments: Array<string | null> | null;
+  /** 排位賽的最快圈（跑到哪一節就是哪一節）。 */
+  best: string | null;
+}
+
+export type ProvisionalViews = Partial<Record<ProvisionalKind, ProvisionalView[]>>;
+
 export interface WeekendView {
   round: number;
   name: string;
@@ -309,6 +327,8 @@ export interface WeekendView {
   results: ResultView[] | null;
   sprintResults: ResultView[] | null;
   qualifying: QualifyingView[] | null;
+  /** 尚未被正式結果取代的暫定結果（見 docs/adr/0005）；通常為空物件。 */
+  provisional: ProvisionalViews;
   /** 前三名（有正式名次者），供賽程表直接顯示。 */
   podium: ResultView[];
   /**

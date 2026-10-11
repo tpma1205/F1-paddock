@@ -7,6 +7,10 @@ import {
   type DriverView,
   type Highlight,
   type PointsProgression,
+  type ProvisionalKind,
+  type ProvisionalResult,
+  type ProvisionalView,
+  type ProvisionalViews,
   type QualifyingResult,
   type RaceWeekend,
   type SeasonHighlights,
@@ -62,7 +66,7 @@ const fallbackDriver = (id: string): DriverRef => ({
 const fallbackTeam = (id: string): TeamRef => ({ id, name: id, nationality: '', colour: null });
 
 import { endOf, seasonFinished } from './season.ts';
-import { formatGapMs, formatLapMs } from './laptime.ts';
+import { formatGapMs, formatLapMs, formatRaceTimeMs } from './laptime.ts';
 
 const statusOf = (session: Session, nowMs: number): SessionStatus => {
   if (endOf(session) <= nowMs) return 'finished';
@@ -72,6 +76,38 @@ const statusOf = (session: Session, nowMs: number): SessionStatus => {
 
 /** 排位賽的最快圈：跑到哪一節就是哪一節的時間。 */
 const qualifyingBest = (q: QualifyingResult): string | null => q.q3 ?? q.q2 ?? q.q1;
+
+/** 暫定排位結果的最快圈：跑到哪一節就是哪一節的時間。 */
+const provisionalBest = (row: ProvisionalResult): string | null => {
+  const ms = row.segmentsMs?.filter((segment): segment is number => segment !== null).at(-1) ?? null;
+  return ms === null ? null : formatLapMs(ms);
+};
+
+/** 暫定結果 → 已解析車手與車隊、格式化好時間的列（見 docs/adr/0005）。 */
+const toProvisionalViews = (
+  rows: ReadonlyArray<ProvisionalResult>,
+  kind: ProvisionalKind,
+  refs: RefIndex,
+): ProvisionalView[] =>
+  rows.map((row) => {
+    const timed = row.outcome === 'classified' && kind !== 'qualifying';
+    const time = !timed
+      ? null
+      : row.durationMs !== null && row.position === 1
+        ? formatRaceTimeMs(row.durationMs)
+        : row.gapText ?? (row.gapMs !== null && row.gapMs > 0 ? formatGapMs(row.gapMs) : null);
+    return {
+      position: row.position,
+      driverNumber: row.driverNumber,
+      driver: row.driverId === null ? null : (refs.drivers.get(row.driverId) ?? null),
+      team: row.teamId === null ? null : (refs.teams.get(row.teamId) ?? null),
+      laps: row.laps,
+      outcome: row.outcome,
+      time,
+      segments: row.segmentsMs?.map((ms) => (ms === null ? null : formatLapMs(ms))) ?? null,
+      best: provisionalBest(row),
+    };
+  });
 
 const leaderFrom = (driver: DriverRef | null, driverNumber: number | null, time: string | null): SessionLeader => ({
   code: driver?.code ?? (driverNumber === null ? '—' : `#${driverNumber}`),
@@ -98,15 +134,16 @@ const leaderOf = (session: Session, weekend: RaceWeekend, refs: RefIndex): Sessi
     }
     case 'qualifying': {
       const first = weekend.qualifying?.[0];
-      return first ? leaderFrom(driverOf(first.driverId), null, qualifyingBest(first)) : null;
+      if (first) return leaderFrom(driverOf(first.driverId), null, qualifyingBest(first));
+      const provisional = weekend.provisional?.qualifying?.[0];
+      return provisional ? leaderFrom(driverOf(provisional.driverId), provisional.driverNumber, provisionalBest(provisional)) : null;
     }
-    case 'sprint': {
-      const first = weekend.sprintResults?.[0];
-      return first ? leaderFrom(driverOf(first.driverId), null, null) : null;
-    }
+    case 'sprint':
     case 'race': {
-      const first = weekend.results?.[0];
-      return first ? leaderFrom(driverOf(first.driverId), null, null) : null;
+      const first = (session.kind === 'race' ? weekend.results : weekend.sprintResults)?.[0];
+      if (first) return leaderFrom(driverOf(first.driverId), null, null);
+      const provisional = weekend.provisional?.[session.kind]?.[0];
+      return provisional ? leaderFrom(driverOf(provisional.driverId), provisional.driverNumber, null) : null;
     }
   }
 };
@@ -141,6 +178,15 @@ export const toTimedResultViews = (rows: ReadonlyArray<TimedResult>, viewModel: 
     };
   });
 
+const toProvisionalWeekend = (weekend: RaceWeekend, refs: RefIndex): ProvisionalViews => {
+  const views: ProvisionalViews = {};
+  for (const kind of ['qualifying', 'sprint', 'race'] as const) {
+    const rows = weekend.provisional?.[kind];
+    if (rows) views[kind] = toProvisionalViews(rows, kind, refs);
+  }
+  return views;
+};
+
 const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): WeekendView => {
   const sessions = weekend.sessions.map((session) => toSessionView(session, weekend, nowMs, refs));
   // 每個 Race Weekend 必有正賽（見 jolpica.ts 的 toSessions）；找不到時視為未開始。
@@ -168,6 +214,7 @@ const toWeekendView = (weekend: RaceWeekend, nowMs: number, refs: RefIndex): Wee
     results,
     sprintResults,
     qualifying,
+    provisional: toProvisionalWeekend(weekend, refs),
     podium: (results ?? []).filter(isPodium).slice(0, 3),
     latestFinishedSession: latestFinished?.kind ?? null,
   };

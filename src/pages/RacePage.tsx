@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router';
 import { motion } from 'motion/react';
 import {
   timedKey,
+  type ProvisionalView,
   type QualifyingView,
   type ResultView,
   type SessionKind,
@@ -135,15 +136,40 @@ interface SessionResultProps {
   timedLoaded: boolean;
 }
 
-const NOT_YET = <p className="hero__note">結果還沒抓到。資料每天更新一次，這一場會在下一次更新時出現。</p>;
+const NOT_YET = <p className="hero__note">結果還沒抓到。網站每天自動更新，場次剛結束時可按頁尾的「立即更新」。</p>;
+
+/** 暫定結果的標示：來源是 OpenF1 名次、尚未被正式結果取代。 */
+const PROVISIONAL_NOTE = (
+  <p className="provisional-note">
+    <span className="pill pill--provisional">暫定</span>
+    來自 OpenF1 的名次，尚未經正式結果確認；積分、起跑格與最速圈待正式結果公布後補上。
+  </p>
+);
 
 /** 一個已結束場次的 Result —— 依場次種類選對的表。 */
 const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultProps): JSX.Element => {
   switch (session.kind) {
     case 'race':
     case 'sprint': {
-      const rows = session.kind === 'race' ? weekend.results : weekend.sprintResults;
-      if (!rows) return NOT_YET;
+      const kind = session.kind;
+      const rows = kind === 'race' ? weekend.results : weekend.sprintResults;
+      if (!rows) {
+        const draft = weekend.provisional[kind];
+        if (!draft) return NOT_YET;
+        return (
+          <>
+            <h2 className="section-title">
+              {SESSION_SHORT_LABEL[session.kind]} 賽果 <span className="pill pill--provisional">暫定</span>
+            </h2>
+            {PROVISIONAL_NOTE}
+            <ol className="results">
+              {draft.map((row) => (
+                <ProvisionalRow key={row.driverNumber} row={row} kind={kind} />
+              ))}
+            </ol>
+          </>
+        );
+      }
       return (
         <>
           <h2 className="section-title">{SESSION_SHORT_LABEL[session.kind]} 賽果</h2>
@@ -156,7 +182,23 @@ const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultPr
       );
     }
     case 'qualifying': {
-      if (!weekend.qualifying) return NOT_YET;
+      if (!weekend.qualifying) {
+        const draft = weekend.provisional.qualifying;
+        if (!draft) return NOT_YET;
+        return (
+          <>
+            <h2 className="section-title">
+              排位結果 <span className="pill pill--provisional">暫定</span>
+            </h2>
+            {PROVISIONAL_NOTE}
+            <ol className="results results--qualifying">
+              {draft.map((row) => (
+                <ProvisionalRow key={row.driverNumber} row={row} kind="qualifying" />
+              ))}
+            </ol>
+          </>
+        );
+      }
       return (
         <>
           <h2 className="section-title">排位結果</h2>
@@ -193,6 +235,91 @@ const SessionResult = ({ session, weekend, timed, timedLoaded }: SessionResultPr
 const teamStyle = (colour: string | null): React.CSSProperties => {
   const accent = colour ?? NEUTRAL_ACCENT;
   return { '--team-colour': accent, '--team-text': readableOn(accent, SURFACE) } as React.CSSProperties;
+};
+
+const OUTCOME_LABEL = { classified: '', dnf: '退賽', dns: '未起跑', dsq: '失格' } as const;
+
+/**
+ * 暫定結果一列。只顯示來源實際提供的欄位；積分、起跑格、最速圈沒有就是「—」，
+ * 不補 0 也不推算（見 docs/adr/0005）。
+ */
+const ProvisionalRow = ({ row, kind }: { row: ProvisionalView; kind: 'qualifying' | 'sprint' | 'race' }): JSX.Element => {
+  const { driver, team } = row;
+  const colour = team?.colour ?? null;
+  const outcome = row.outcome === 'classified' ? (row.time ?? '—') : OUTCOME_LABEL[row.outcome];
+  return (
+    <li className={`result result--provisional ${row.outcome === 'classified' ? '' : 'result--unclassified'}`} style={teamStyle(colour)}>
+      <details className="result__details">
+        <summary className="result__row">
+          <span className="result__position">{row.position}</span>
+          {driver ? (
+            <DriverPhoto driver={driver} colour={colour ?? NEUTRAL_ACCENT} />
+          ) : (
+            <span className="driver-photo driver-photo--card driver-photo--number" aria-hidden="true">
+              #{row.driverNumber}
+            </span>
+          )}
+          <span className="result__driver">
+            {driver ? (
+              <>
+                <BilingualName
+                  canonical={`${driver.givenName} ${driver.familyName}`}
+                  localised={localisedDriver(driver.id)}
+                  variant="panel"
+                />
+                {team && (
+                  <span className="result__team">
+                    <BilingualName canonical={team.name} localised={localisedTeam(team.id)} />
+                  </span>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="bilingual__canonical">#{row.driverNumber}</span>
+                <span className="result__team">未登錄車手</span>
+              </>
+            )}
+          </span>
+          {kind === 'qualifying' ? (
+            (['Q1', 'Q2', 'Q3'] as const).map((label, i) => (
+              <span key={label} className="result__cell result__cell--secondary result__cell--time">
+                <span className="result__label">{label}</span>
+                {row.segments?.[i] ?? '—'}
+              </span>
+            ))
+          ) : (
+            <>
+              <span className="result__cell result__cell--secondary">
+                <span className="result__label">起跑</span>—
+              </span>
+              <span className="result__cell result__cell--secondary">
+                <span className="result__label">圈數</span>
+                {row.laps}
+              </span>
+              <span className="result__cell result__cell--secondary result__cell--outcome">
+                <span className="result__label">時間／狀態</span>
+                {outcome}
+              </span>
+            </>
+          )}
+          <span className="result__points">
+            <span className="stat__value stat__value--time">{kind === 'qualifying' ? (row.best ?? '—') : '—'}</span>
+            <span className="stat__label">{kind === 'qualifying' ? '最快圈' : '積分'}</span>
+          </span>
+        </summary>
+        <dl className="result__more">
+          <div>
+            <dt>圈數</dt>
+            <dd>{row.laps}</dd>
+          </div>
+          <div>
+            <dt>狀態</dt>
+            <dd>{row.outcome === 'classified' ? '完賽' : OUTCOME_LABEL[row.outcome]}</dd>
+          </div>
+        </dl>
+      </details>
+    </li>
+  );
 };
 
 /** 排位賽一列：名次／車手／Q1／Q2／Q3。被淘汰的節次以「—」呈現。 */

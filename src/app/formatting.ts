@@ -119,3 +119,7 @@ export const formatFetchedAt = (iso: string, timeZone: string): string =>
     minute: '2-digit',
     hour12: false,
   }).format(new Date(iso));
+
+/** 只有時間的短格式（`14:32`），供「上次檢查」使用。 */
+export const formatCheckedAt = (iso: string, timeZone: string): string =>
+  new Intl.DateTimeFormat('zh-TW', { timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
