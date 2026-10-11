@@ -25,7 +25,7 @@ const withoutRaceResults = (): Snapshot => ({
 });
 
 describe('findPending —— 哪些場次是「已結束、但快照裡還沒有結果」', () => {
-  it('正賽開始後 3.5 小時內不算到期；超過才算（紅旗可能拖長）', () => {
+  it('正賽開始後 2.5 小時內不算到期；超過才算', () => {
     const snapshot = withoutRaceResults();
     const race = sessionAt('race');
     const early = findPending(snapshot, {}, new Date(race + minutes(RESULT_DUE_MINUTES.race) - 1));
@@ -34,7 +34,7 @@ describe('findPending —— 哪些場次是「已結束、但快照裡還沒有
     expect(late.sessions).toContain('race');
   });
 
-  it('固定時長：練習賽與衝刺排位 90 分、衝刺賽 90 分、排位賽 120 分、正賽 210 分', () => {
+  it('固定時長：練習賽與衝刺排位 90 分、衝刺賽 90 分、排位賽 120 分、正賽 150 分', () => {
     expect(RESULT_DUE_MINUTES).toEqual({
       fp1: 90,
       fp2: 90,
@@ -42,7 +42,7 @@ describe('findPending —— 哪些場次是「已結束、但快照裡還沒有
       sprintQualifying: 90,
       sprint: 90,
       qualifying: 120,
-      race: 210,
+      race: 150,
     });
   });
 

@@ -57,8 +57,9 @@ const MINUTE_MS = 60_000;
  * 場次開始後多久，才認為它的結果「應該已經出來」—— 開始後的固定時長，含緩衝。
  *
  * 與 `SESSION_DURATION_MINUTES`（只驅動「進行中／已結束」的顯示）不同：這裡要的是
- * 「值得去問 API 的時間點」，偏保守，寧可晚一點讓更新生效，也不在直播中誤判。
- * 正賽留 3.5 小時是因為紅旗可能把比賽拖長。
+ * 「值得去問 API 的時間點」。正賽留 2.5 小時：比賽本身上限 2 小時，OpenF1 結束後
+ * 幾分鐘內就有結果（2026 新加坡實測）。紅旗拖長時太早問也無妨 —— OpenF1 直播中回 401，
+ * 畫面顯示「場次進行中」；先前的 3.5 小時讓正賽結束後一個多小時按鈕都不會去抓。
  */
 export const RESULT_DUE_MINUTES: Record<SessionKind, number> = {
   fp1: 90,
@@ -67,7 +68,7 @@ export const RESULT_DUE_MINUTES: Record<SessionKind, number> = {
   sprintQualifying: 90,
   sprint: 90,
   qualifying: 120,
-  race: 210,
+  race: 150,
 };
 
 /** 一次補抓最多處理幾個場次。 */
