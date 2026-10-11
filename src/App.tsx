@@ -4,6 +4,9 @@ import { bundledSnapshots } from './data/snapshot.ts';
 import { buildViewModel } from './domain/viewModel.ts';
 import { useNow } from './app/useNow.ts';
 import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/formatting.ts';
+import { LiveTimedContext } from './app/liveData.ts';
+import { RefreshControl } from './app/RefreshControl.tsx';
+import { useLiveRefresh } from './app/useLiveRefresh.ts';
 import { ScrollProgress } from './app/ScrollProgress.tsx';
 import { Breadcrumb } from './app/Breadcrumb.tsx';
 import { HomePage } from './pages/HomePage.tsx';
@@ -30,7 +33,8 @@ const BASENAME = import.meta.env.BASE_URL.replace(/\/$/, '');
 export const App = (): JSX.Element => {
   const now = useNow();
   const timeZone = useMemo(resolveTimeZone, []);
-  const viewModel = useMemo(() => buildViewModel(bundledSnapshots, now), [now]);
+  const live = useLiveRefresh(bundledSnapshots, now);
+  const viewModel = useMemo(() => buildViewModel(live.snapshots, now), [live.snapshots, now]);
   const timeZoneLabel = formatTimeZoneLabel(now, timeZone);
   const nextRound = viewModel.nextSession?.weekend.round ?? null;
   const nextSessionKind = viewModel.nextSession?.session.kind ?? null;
@@ -59,72 +63,75 @@ export const App = (): JSX.Element => {
         <Breadcrumb viewModel={viewModel} />
 
         <main>
-          <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
-            <Routes>
-            <Route
-              path="/"
-              element={
-                <HomePage viewModel={viewModel} timeZone={timeZone} timeZoneLabel={timeZoneLabel} />
-              }
-            />
-            <Route
-              path="/teams"
-              element={<TeamsPage season={viewModel.standingsSeason} teams={viewModel.teams} />}
-            />
-            <Route
-              path="/teams/:teamId"
-              element={
-                <TeamPage season={viewModel.standingsSeason} teams={viewModel.teams} battles={viewModel.battles} />
-              }
-            />
-            <Route
-              path="/drivers"
-              element={<DriversPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
-            />
-            <Route
-              path="/drivers/:driverId"
-              element={<DriverPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
-            />
-            <Route
-              path="/circuits"
-              element={<CircuitsPage season={viewModel.season} circuits={viewModel.circuits} />}
-            />
-            <Route
-              path="/circuits/:circuitId"
-              element={<CircuitPage season={viewModel.season} circuits={viewModel.circuits} />}
-            />
-            <Route
-              path="/calendar"
-              element={
-                <CalendarPage
-                  season={viewModel.season}
-                  weekends={viewModel.weekends}
-                  nextRound={nextRound}
-                  timeZone={timeZone}
-                  fetchedAt={viewModel.fetchedAt}
-                />
-              }
-            />
-            <Route
-              path="/races/:round"
-              element={
-                <RacePage
-                  viewModel={viewModel}
-                  nextRound={nextRound}
-                  nextSessionKind={nextSessionKind}
-                  msUntilNext={msUntilNext}
-                  timeZone={timeZone}
-                  timeZoneLabel={timeZoneLabel}
-                />
-              }
-            />
-            </Routes>
-          </Suspense>
+          <LiveTimedContext.Provider value={live.timed}>
+            <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
+              <Routes>
+              <Route
+                path="/"
+                element={
+                  <HomePage viewModel={viewModel} timeZone={timeZone} timeZoneLabel={timeZoneLabel} />
+                }
+              />
+              <Route
+                path="/teams"
+                element={<TeamsPage season={viewModel.standingsSeason} teams={viewModel.teams} />}
+              />
+              <Route
+                path="/teams/:teamId"
+                element={
+                  <TeamPage season={viewModel.standingsSeason} teams={viewModel.teams} battles={viewModel.battles} />
+                }
+              />
+              <Route
+                path="/drivers"
+                element={<DriversPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
+              />
+              <Route
+                path="/drivers/:driverId"
+                element={<DriverPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
+              />
+              <Route
+                path="/circuits"
+                element={<CircuitsPage season={viewModel.season} circuits={viewModel.circuits} />}
+              />
+              <Route
+                path="/circuits/:circuitId"
+                element={<CircuitPage season={viewModel.season} circuits={viewModel.circuits} />}
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <CalendarPage
+                    season={viewModel.season}
+                    weekends={viewModel.weekends}
+                    nextRound={nextRound}
+                    timeZone={timeZone}
+                    fetchedAt={viewModel.fetchedAt}
+                  />
+                }
+              />
+              <Route
+                path="/races/:round"
+                element={
+                  <RacePage
+                    viewModel={viewModel}
+                    nextRound={nextRound}
+                    nextSessionKind={nextSessionKind}
+                    msUntilNext={msUntilNext}
+                    timeZone={timeZone}
+                    timeZoneLabel={timeZoneLabel}
+                  />
+                }
+              />
+              </Routes>
+            </Suspense>
+          </LiveTimedContext.Provider>
         </main>
 
         <footer className="meta">
           <span>{timeZoneLabel}</span>
           <span>資料更新於 {formatFetchedAt(viewModel.fetchedAt, timeZone)}</span>
+          <RefreshControl live={live} season={viewModel.season} timeZone={timeZone} />
         </footer>
       </div>
     </BrowserRouter>
