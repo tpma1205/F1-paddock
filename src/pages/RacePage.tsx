@@ -141,7 +141,6 @@ const NOT_YET = <p className="hero__note">結果還沒抓到。網站每天自�
 /** 暫定結果的標示：來源是 OpenF1 名次、尚未被正式結果取代。 */
 const PROVISIONAL_NOTE = (
   <p className="provisional-note">
-    <span className="pill pill--provisional">暫定</span>
     來自 OpenF1 的名次，尚未經正式結果確認；積分、起跑格與最速圈待正式結果公布後補上。
   </p>
 );
