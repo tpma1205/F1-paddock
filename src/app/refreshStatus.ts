@@ -22,20 +22,21 @@ export const describeOutcome = (outcome: RefreshOutcome): StatusDescription => {
   if (outcome.nothingPending) return { tone: 'info', text: '目前沒有待補結果的場次' };
 
   const { notes } = outcome;
-  if (notes.some((n) => n.kind === 'live-session')) {
-    return { tone: 'info', text: '場次進行中，結束後才能取得結果' };
-  }
-
+  const live = notes.some((n) => n.kind === 'live-session');
   const stale = notes.find((n) => n.kind === 'standings-stale');
   const error = notes.find((n) => n.kind === 'error');
 
+  // 已經補到資料時，401 只是「還有場次進行中」，不能蓋掉「已更新」
   if (outcome.changed) {
     const extras = [
+      live ? '另有場次進行中，結束後才能取得結果' : null,
       stale ? '積分榜尚未更新，維持舊資料' : null,
       error ? '部分請求失敗' : null,
     ].filter((part): part is string => part !== null);
     return { tone: 'success', text: ['已更新', ...extras].join('，') };
   }
+
+  if (live) return { tone: 'info', text: '場次進行中，結束後才能取得結果' };
 
   if (error) return { tone: 'error', text: '更新失敗，已保留原本資料' };
   if (stale) return { tone: 'info', text: '積分榜尚未更新，維持舊資料' };

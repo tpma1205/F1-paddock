@@ -297,7 +297,12 @@ export const refreshResults = async ({ snapshot, timed, now, fetchJson }: Refres
       const update = normaliseStandingsUpdate(next, drivers, teams);
       if (!update || update.round < expected) {
         notes.push({ kind: 'standings-stale', expected, got: update?.round ?? 0 });
-      } else {
+      } else if (
+        update.round !== next.completedRound ||
+        JSON.stringify(update.driverStandings) !== JSON.stringify(next.driverStandings) ||
+        JSON.stringify(update.teamStandings) !== JSON.stringify(next.teamStandings)
+      ) {
+        // 內容與站次都沒變就不算更新，頁尾時間才不會假裝有新資料
         next = {
           ...next,
           completedRound: update.round,

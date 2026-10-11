@@ -61,6 +61,12 @@ describe('describeOutcome —— 每種情況有明確且不同的訊息', () =>
     expect(text(outcome({ changed: true }))).toContain('已更新');
   });
 
+  it('已補到資料、另有場次回 401：顯示「已更新」並說明，不被 401 訊息蓋掉', () => {
+    const message = text(outcome({ changed: true, notes: [{ kind: 'live-session' }] }));
+    expect(message).toContain('已更新');
+    expect(message).toContain('場次進行中');
+  });
+
   it('401 與一般錯誤、無資料的訊息彼此不同', () => {
     const messages = [
       text(outcome({ notes: [{ kind: 'live-session' }] })),

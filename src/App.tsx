@@ -64,67 +64,67 @@ export const App = (): JSX.Element => {
 
         <main>
           <LiveTimedContext.Provider value={live.timed}>
-          <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
-            <Routes>
-            <Route
-              path="/"
-              element={
-                <HomePage viewModel={viewModel} timeZone={timeZone} timeZoneLabel={timeZoneLabel} />
-              }
-            />
-            <Route
-              path="/teams"
-              element={<TeamsPage season={viewModel.standingsSeason} teams={viewModel.teams} />}
-            />
-            <Route
-              path="/teams/:teamId"
-              element={
-                <TeamPage season={viewModel.standingsSeason} teams={viewModel.teams} battles={viewModel.battles} />
-              }
-            />
-            <Route
-              path="/drivers"
-              element={<DriversPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
-            />
-            <Route
-              path="/drivers/:driverId"
-              element={<DriverPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
-            />
-            <Route
-              path="/circuits"
-              element={<CircuitsPage season={viewModel.season} circuits={viewModel.circuits} />}
-            />
-            <Route
-              path="/circuits/:circuitId"
-              element={<CircuitPage season={viewModel.season} circuits={viewModel.circuits} />}
-            />
-            <Route
-              path="/calendar"
-              element={
-                <CalendarPage
-                  season={viewModel.season}
-                  weekends={viewModel.weekends}
-                  nextRound={nextRound}
-                  timeZone={timeZone}
-                  fetchedAt={viewModel.fetchedAt}
-                />
-              }
-            />
-            <Route
-              path="/races/:round"
-              element={
-                <RacePage
-                  viewModel={viewModel}
-                  nextRound={nextRound}
-                  nextSessionKind={nextSessionKind}
-                  msUntilNext={msUntilNext}
-                  timeZone={timeZone}
-                  timeZoneLabel={timeZoneLabel}
-                />
-              }
-            />
-            </Routes>
-          </Suspense>
+            <Suspense fallback={<div className="page-loading" aria-busy="true" />}>
+              <Routes>
+              <Route
+                path="/"
+                element={
+                  <HomePage viewModel={viewModel} timeZone={timeZone} timeZoneLabel={timeZoneLabel} />
+                }
+              />
+              <Route
+                path="/teams"
+                element={<TeamsPage season={viewModel.standingsSeason} teams={viewModel.teams} />}
+              />
+              <Route
+                path="/teams/:teamId"
+                element={
+                  <TeamPage season={viewModel.standingsSeason} teams={viewModel.teams} battles={viewModel.battles} />
+                }
+              />
+              <Route
+                path="/drivers"
+                element={<DriversPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
+              />
+              <Route
+                path="/drivers/:driverId"
+                element={<DriverPage season={viewModel.standingsSeason} drivers={viewModel.drivers} />}
+              />
+              <Route
+                path="/circuits"
+                element={<CircuitsPage season={viewModel.season} circuits={viewModel.circuits} />}
+              />
+              <Route
+                path="/circuits/:circuitId"
+                element={<CircuitPage season={viewModel.season} circuits={viewModel.circuits} />}
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <CalendarPage
+                    season={viewModel.season}
+                    weekends={viewModel.weekends}
+                    nextRound={nextRound}
+                    timeZone={timeZone}
+                    fetchedAt={viewModel.fetchedAt}
+                  />
+                }
+              />
+              <Route
+                path="/races/:round"
+                element={
+                  <RacePage
+                    viewModel={viewModel}
+                    nextRound={nextRound}
+                    nextSessionKind={nextSessionKind}
+                    msUntilNext={msUntilNext}
+                    timeZone={timeZone}
+                    timeZoneLabel={timeZoneLabel}
+                  />
+                }
+              />
+              </Routes>
+            </Suspense>
           </LiveTimedContext.Provider>
         </main>
 
