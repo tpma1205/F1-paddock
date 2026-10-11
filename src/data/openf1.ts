@@ -6,7 +6,15 @@
  * 對不上 Jolpica 的 constructorId（"red_bull"）—— 所以用**車手三字母縮寫**
  * 當橋樑：Jolpica 的 `code` 與 OpenF1 的 `name_acronym` 是同一套官方縮寫。
  */
-import type { Session, SessionKind, TimedResult, TimedResults } from '../domain/types.ts';
+import type {
+  ProvisionalKind,
+  ProvisionalOutcome,
+  ProvisionalResult,
+  Session,
+  SessionKind,
+  TimedResult,
+  TimedResults,
+} from '../domain/types.ts';
 
 export interface RawOpenF1Driver {
   driver_number: number;
@@ -167,6 +175,51 @@ export const toTimedResults = (
     })
     .sort((a, b) => a.position - b.position)
     // 沒名次的列排在最後，並補上連續的名次讓表格仍能顯示序號
+    .map((row, i) => ({ ...row, position: Number.isFinite(row.position) ? row.position : i + 1 }));
+
+const outcomeOf = (row: RawOpenF1SessionResult): ProvisionalOutcome =>
+  row.dsq ? 'dsq' : row.dns ? 'dns' : row.dnf ? 'dnf' : 'classified';
+
+/** 非數字的差距原文（例如落圈）；數字或空值為 null。 */
+const gapTextOf = (gap: RawOpenF1SessionResult['gap_to_leader']): string | null =>
+  typeof gap === 'string' && !Number.isFinite(Number(gap)) && gap.trim() !== '' ? gap : null;
+
+/**
+ * OpenF1 名次表 → 暫定結果（排位賽、衝刺賽、正賽）。見 docs/adr/0005。
+ *
+ * 只轉換來源實際提供的欄位：沒有積分、起跑格、最快圈，也不推算。車手走與
+ * toTimedResults 相同的「車號 → 縮寫 → Jolpica 車手」橋接；車隊取自該車手在
+ * 積分榜上的車隊（`driverToTeam`），對不到就是 null，不用 OpenF1 的 team_name 猜。
+ * 沒有名次的列（DNF、DNS、DSQ）保留並排在最後，名次補成連續。
+ */
+export const toProvisionalResults = (
+  kind: ProvisionalKind,
+  rows: ReadonlyArray<RawOpenF1SessionResult>,
+  numberToCode: ReadonlyMap<number, string>,
+  codeToDriverId: ReadonlyMap<string, string>,
+  driverToTeam: ReadonlyMap<string, string>,
+): ProvisionalResult[] =>
+  rows
+    .map((row) => {
+      const code = numberToCode.get(row.driver_number);
+      const driverId = (code && codeToDriverId.get(code)) || null;
+      const outcome = outcomeOf(row);
+      const timed = outcome === 'classified';
+      const isQualifying = kind === 'qualifying';
+      return {
+        position: row.position ?? Number.POSITIVE_INFINITY,
+        driverNumber: row.driver_number,
+        driverId,
+        teamId: (driverId && driverToTeam.get(driverId)) || null,
+        laps: row.number_of_laps ?? 0,
+        outcome,
+        durationMs: !timed || isQualifying || Array.isArray(row.duration) ? null : toMs(row.duration),
+        gapMs: !timed || isQualifying ? null : gapOf(row.gap_to_leader),
+        gapText: !timed || isQualifying || Array.isArray(row.gap_to_leader) ? null : gapTextOf(row.gap_to_leader),
+        segmentsMs: isQualifying && Array.isArray(row.duration) ? row.duration.map(toMs) : null,
+      };
+    })
+    .sort((a, b) => a.position - b.position)
     .map((row, i) => ({ ...row, position: Number.isFinite(row.position) ? row.position : i + 1 }));
 
 /** OpenF1 的車手清單（可跨多個 meeting）→ 車號 ↔ 縮寫。先到先得。 */

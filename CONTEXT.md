@@ -53,6 +53,10 @@ _Avoid_: Ranking、排行
 任一 Session 結束後的名次表。介面上依場次種類用對應的詞：正賽是「賽果」、排位賽是「排位結果」、練習賽是「練習結果」。與 Standings 不同。
 _Avoid_: Classification、成績
 
+**Provisional Result（暫定結果）**:
+由 OpenF1 名次推得、尚未被 Jolpica 正式 Result 取代的名次表。只含來源實際提供的欄位，缺的欄位（積分、起跑格、最快圈）留空顯示「—」，不推算。畫面標籤一律用「暫定」。
+_Avoid_: 未確認、速報、臨時結果、Provisional Name（那是譯名，不是 Result）
+
 **Best Lap（最快圈）**:
 一位車手在某個場次跑出的最快單圈時間，是練習賽與排位賽的排名依據。
 _Avoid_: Fastest lap（那是正賽的單圈獎）

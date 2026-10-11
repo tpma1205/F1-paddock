@@ -133,6 +133,35 @@ export interface QualifyingResult {
 export const isPodium = (result: Pick<RaceResult, 'classified' | 'position'>): boolean =>
   result.classified && result.position <= 3;
 
+export type ProvisionalOutcome = 'classified' | 'dnf' | 'dns' | 'dsq';
+
+/**
+ * Provisional Result（暫定結果）的一列：由 OpenF1 名次推得，**只含來源實際提供的欄位**。
+ * 積分、起跑格、最快圈 Jolpica 才有，這裡沒有也不推算（見 docs/adr/0005）。
+ */
+export interface ProvisionalResult {
+  position: number;
+  driverNumber: number;
+  /** 對不回 Jolpica 車手時為 null。 */
+  driverId: string | null;
+  /** 取自該車手在積分榜上的車隊；對不到為 null，不猜。 */
+  teamId: string | null;
+  laps: number;
+  outcome: ProvisionalOutcome;
+  /** 正賽／衝刺賽的完賽總時間（毫秒）；沒有為 null。 */
+  durationMs: number | null;
+  /** 與第一名的時間差（毫秒）；落後圈數等非數字的差距見 gapText。 */
+  gapMs: number | null;
+  /** OpenF1 給的非數字差距原文（例如落圈）；沒有為 null。 */
+  gapText: string | null;
+  /** 排位賽 Q1–Q3 的單圈時間（毫秒，沒參加的節為 null）；其他場次為 null。 */
+  segmentsMs: Array<number | null> | null;
+}
+
+/** 暫定結果只存在於排位賽、衝刺賽與正賽。 */
+export type ProvisionalKind = 'qualifying' | 'sprint' | 'race';
+export type ProvisionalResults = Partial<Record<ProvisionalKind, ProvisionalResult[]>>;
+
 export interface RaceWeekend {
   round: number;
   /** 正式名稱（英文），例如 "Spanish Grand Prix"。中文譯名由對照表另行提供。 */
@@ -146,6 +175,11 @@ export interface RaceWeekend {
   sprintResults: RaceResult[] | null;
   /** 排位賽 Result，依名次排序；尚未舉行時為 null。 */
   qualifying: QualifyingResult[] | null;
+  /**
+   * 執行期補抓產生的暫定結果（見 docs/adr/0005）。**只存在於記憶體中的 Snapshot**，
+   * 打包的快照不會有這個欄位；對應的正式結果一到就被移除。
+   */
+  provisional?: ProvisionalResults;
 }
 
 export interface DriverRef {

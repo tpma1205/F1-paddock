@@ -446,6 +446,67 @@ const attachLeaders = (weekends: RaceWeekend[], timed: TimedResults): void => {
   }
 };
 
+export interface RoundResultsInput {
+  results?: RawResultsResponse;
+  sprints?: RawSprintResponse;
+  qualifying?: RawQualifyingResponse;
+}
+
+/**
+ * 單站端點（`/{season}/{round}/results` 等）的回應 → 該站的正式 Result。
+ * 執行期補抓用；回應沒有那一站（Jolpica 尚未匯入）時對應欄位為 null。
+ */
+export const normaliseRoundResults = (
+  round: number,
+  { results, sprints, qualifying }: RoundResultsInput,
+): { results: RaceResult[] | null; sprintResults: RaceResult[] | null; qualifying: QualifyingResult[] | null } => ({
+  results: groupByRound(results && [results], 'Results', toRaceResult)?.get(round) ?? null,
+  sprintResults: groupByRound(sprints && [sprints], 'SprintResults', toRaceResult)?.get(round) ?? null,
+  qualifying: groupByRound(qualifying && [qualifying], 'QualifyingResults', toQualifyingResult)?.get(round) ?? null,
+});
+
+/**
+ * 執行期更新積分榜：把新的 Jolpica 積分榜套在上一份 Snapshot 上。
+ *
+ * 代表色、車手照片與出道年 OpenF1／出道查詢才有，這裡沿用 `previous` 的 ——
+ * 不為了更新積分榜再打 OpenF1。頒獎台次數由（可能剛更新過的）正賽賽果重算。
+ * 回應沒有積分榜（空的 StandingsLists）時為 null。
+ */
+export const normaliseStandingsUpdate = (
+  previous: Snapshot,
+  drivers: RawDriverStandingsResponse,
+  teams: RawTeamStandingsResponse,
+): Pick<Snapshot, 'driverStandings' | 'teamStandings'> & { round: number } | null => {
+  const rawDrivers = drivers.MRData.StandingsTable.StandingsLists[0]?.DriverStandings;
+  const rawTeams = teams.MRData.StandingsTable.StandingsLists[0]?.ConstructorStandings;
+  const round = Number(drivers.MRData.StandingsTable.round);
+  if (!rawDrivers || !rawTeams || !Number.isFinite(round)) return null;
+
+  const openF1 = new Map<string, OpenF1DriverInfo>();
+  const debuts: Record<string, string | null> = {};
+  for (const standing of previous.driverStandings) {
+    debuts[standing.driver.id] = standing.driver.debutSeason;
+    if (standing.driver.code) {
+      openF1.set(standing.driver.code, {
+        teamColour: standing.teams.at(-1)?.colour ?? null,
+        headshotUrl: standing.driver.headshotUrl,
+      });
+    }
+  }
+
+  const resultsByRound = new Map(previous.weekends.flatMap((w) => (w.results ? [[w.round, w.results] as const] : [])));
+  const podiums = resultsByRound.size > 0 ? tallyPodiums(resultsByRound) : null;
+  const colours = deriveTeamColours(rawDrivers, openF1);
+
+  return {
+    round,
+    driverStandings: rawDrivers
+      .map(toDriverStanding(colours, openF1, podiums, debuts))
+      .sort((a, b) => a.position - b.position),
+    teamStandings: rawTeams.map(toTeamStanding(colours)).sort((a, b) => a.position - b.position),
+  };
+};
+
 export interface NormaliseInput {
   races: RawRacesResponse;
   driverStandings: RawDriverStandingsResponse;
