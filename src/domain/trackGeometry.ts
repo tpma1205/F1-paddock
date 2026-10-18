@@ -16,7 +16,7 @@ export interface TrackPath {
   viewBox: string;
   width: number;
   height: number;
-  /** 起跑線位置（viewBox 座標）—— 賽道線從此處開始描繪。 */
+  /** 起跑線位置（viewBox 座標）—— 紅色起跑點的位置。 */
   start: { x: number; y: number };
 }
 

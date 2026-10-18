@@ -1,18 +1,20 @@
-import { useRef, type JSX } from 'react';
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
-import type { ViewModel } from '../domain/types.ts';
-import { useEntrance } from '../app/motion.ts';
-import { PARALLAX_QUERY, useMediaQuery } from '../app/useMediaQuery.ts';
-import { SessionPanel } from '../app/SessionPanel.tsx';
-import { StandingsSection } from '../app/StandingsSection.tsx';
-import { InsightsSection } from '../app/InsightsSection.tsx';
-import { PreviewStrip } from '../app/PreviewStrip.tsx';
-import { TeamCard } from '../app/cards/TeamCard.tsx';
-import { DriverCard } from '../app/cards/DriverCard.tsx';
-import { CircuitCard } from '../app/cards/CircuitCard.tsx';
-import { BilingualName } from '../app/BilingualName.tsx';
-import { localisedCircuit, localisedRaceWeekend } from '../data/localisation.ts';
-import { SESSION_LABEL, pad2, toCountdown } from '../app/formatting.ts';
+import type { JSX } from "react";
+import { motion } from "motion/react";
+import type { ViewModel } from "../domain/types.ts";
+import { useEntrance } from "../app/motion.ts";
+import { SessionPanel } from "../app/SessionPanel.tsx";
+import { StandingsSection } from "../app/StandingsSection.tsx";
+import { InsightsSection } from "../app/InsightsSection.tsx";
+import { PreviewStrip } from "../app/PreviewStrip.tsx";
+import { TeamCard } from "../app/cards/TeamCard.tsx";
+import { DriverCard } from "../app/cards/DriverCard.tsx";
+import { CircuitCard } from "../app/cards/CircuitCard.tsx";
+import { BilingualName } from "../app/BilingualName.tsx";
+import {
+  localisedCircuit,
+  localisedRaceWeekend,
+} from "../data/localisation.ts";
+import { SESSION_LABEL, pad2, toCountdown } from "../app/formatting.ts";
 
 interface HomePageProps {
   viewModel: ViewModel;
@@ -22,89 +24,87 @@ interface HomePageProps {
 
 const PREVIEW_COUNT = 6;
 
-export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps): JSX.Element => {
+export const HomePage = ({
+  viewModel,
+  timeZone,
+  timeZoneLabel,
+}: HomePageProps): JSX.Element => {
   const { container, item } = useEntrance({ reveal: true });
-  const { season, standingsSeason, standingsAreFinal, nextSession, focusWeekend, isOffSeason, drivers, teams, circuits } =
-    viewModel;
-  const completedRound = viewModel.weekends.filter((w) => w.raceStatus === 'finished').length || null;
-
-  // 視差：前景（標題）往上走得比背景（暈光）快。只在寬螢幕且未要求減少動畫時啟用。
-  const heroRef = useRef<HTMLElement>(null);
-  const wide = useMediaQuery(PARALLAX_QUERY);
-  const reduced = useReducedMotion() ?? false;
-  const parallax = wide && !reduced;
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
-  const foregroundY = useTransform(scrollYProgress, [0, 1], [0, -90]);
-  const glowY = useTransform(scrollYProgress, [0, 1], [0, 60]);
-  const glowOpacity = useTransform(scrollYProgress, [0, 1], [1, 0.35]);
-
-  // 各預覽區的代表色：領先車隊；賽道沒有車隊，回到骨幹紅。
-  const leaderColour = teams[0]?.colour;
-  const leaderDriverColour = drivers[0]?.team?.colour;
+  const {
+    season,
+    standingsSeason,
+    standingsAreFinal,
+    nextSession,
+    focusWeekend,
+    isOffSeason,
+    drivers,
+    teams,
+    circuits,
+  } = viewModel;
+  const completedRound =
+    viewModel.weekends.filter((w) => w.raceStatus === "finished").length ||
+    null;
 
   return (
     <>
       <motion.section
         className="hero"
-        ref={heroRef}
         variants={container}
         initial="hidden"
         animate="shown"
       >
-        <motion.div
-          className="hero__glow"
-          aria-hidden="true"
-          style={parallax ? { y: glowY, opacity: glowOpacity } : {}}
-        />
-        <motion.div className="hero__content" style={parallax ? { y: foregroundY } : {}}>
-        <motion.p className="hero__eyebrow" variants={item}>
-          {season} 賽季{focusWeekend && <>第 {focusWeekend.round} 站</>}
-        </motion.p>
+        <div className="hero__content">
+          <motion.p className="hero__eyebrow" variants={item}>
+            {season} 賽季{focusWeekend && <>第 {focusWeekend.round} 站</>}
+          </motion.p>
 
-        {isOffSeason || !nextSession ? (
-          <>
-            <motion.h1 className="hero__title" variants={item}>
-              {season} 賽季已結束
-            </motion.h1>
-            <motion.p className="hero__note" variants={item}>
-              下一季賽程公布後，此處將自動顯示開幕倒數。
-            </motion.p>
-          </>
-        ) : (
-          <>
-            <motion.h1 className="hero__title" variants={item}>
-              <BilingualName
-                canonical={nextSession.weekend.name}
-                localised={localisedRaceWeekend(nextSession.weekend.name)}
-                variant="hero"
-              />
-            </motion.h1>
+          {isOffSeason || !nextSession ? (
+            <>
+              <motion.h1 className="hero__title" variants={item}>
+                {season} 賽季已結束
+              </motion.h1>
+              <motion.p className="hero__note" variants={item}>
+                下一季賽程公布後，此處將自動顯示開幕倒數。
+              </motion.p>
+            </>
+          ) : (
+            <>
+              <motion.h1 className="hero__title" variants={item}>
+                <BilingualName
+                  canonical={nextSession.weekend.name}
+                  localised={localisedRaceWeekend(nextSession.weekend.name)}
+                  variant="hero"
+                />
+              </motion.h1>
 
-            <motion.p className="hero__circuit" variants={item}>
-              <BilingualName
-                canonical={nextSession.weekend.circuit.name}
-                localised={localisedCircuit(nextSession.weekend.circuit.id)}
-              />
-              <span className="hero__locality">
-                {nextSession.weekend.circuit.locality}, {nextSession.weekend.circuit.country}
-              </span>
-            </motion.p>
+              <motion.p className="hero__circuit" variants={item}>
+                <BilingualName
+                  canonical={nextSession.weekend.circuit.name}
+                  localised={localisedCircuit(nextSession.weekend.circuit.id)}
+                />
+                <span className="hero__locality">
+                  {nextSession.weekend.circuit.locality},{" "}
+                  {nextSession.weekend.circuit.country}
+                </span>
+              </motion.p>
 
-            <motion.div className="hero__next" variants={item}>
-              <p className="hero__session">
-                {SESSION_LABEL[nextSession.session.kind]}
-                {nextSession.session.status === 'live' && <span className="pill">進行中</span>}
-              </p>
+              <motion.div className="hero__next" variants={item}>
+                <p className="hero__session">
+                  {SESSION_LABEL[nextSession.session.kind]}
+                  {nextSession.session.status === "live" && (
+                    <span className="pill">進行中</span>
+                  )}
+                </p>
 
-              {nextSession.session.status === 'live' ? (
-                <p className="hero__live">正在進行</p>
-              ) : (
-                <HeroCountdown ms={nextSession.msUntilStart} />
-              )}
-            </motion.div>
-          </>
-        )}
-        </motion.div>
+                {nextSession.session.status === "live" ? (
+                  <p className="hero__live">正在進行</p>
+                ) : (
+                  <HeroCountdown ms={nextSession.msUntilStart} />
+                )}
+              </motion.div>
+            </>
+          )}
+        </div>
       </motion.section>
 
       {focusWeekend && nextSession && (
@@ -126,17 +126,26 @@ export const HomePage = ({ viewModel, timeZone, timeZoneLabel }: HomePageProps):
         teams={teams}
       />
 
-      <InsightsSection season={standingsSeason} progression={viewModel.progression} highlights={viewModel.highlights} />
+      <InsightsSection
+        season={standingsSeason}
+        progression={viewModel.progression}
+        highlights={viewModel.highlights}
+      />
 
-      <PreviewStrip title="車隊" href="/teams" accent={leaderColour ?? undefined}>
+      <PreviewStrip title="車隊" href="/teams">
         {teams.slice(0, PREVIEW_COUNT).map((team) => (
           <TeamCard key={team.id} team={team} variants={item} />
         ))}
       </PreviewStrip>
 
-      <PreviewStrip title="車手" href="/drivers" accent={leaderDriverColour ?? undefined}>
+      <PreviewStrip title="車手" href="/drivers">
         {drivers.slice(0, PREVIEW_COUNT).map((entry) => (
-          <DriverCard key={entry.driver.id} entry={entry} colour={entry.team?.colour ?? null} variants={item} />
+          <DriverCard
+            key={entry.driver.id}
+            entry={entry}
+            colour={entry.team?.colour ?? null}
+            variants={item}
+          />
         ))}
       </PreviewStrip>
 
