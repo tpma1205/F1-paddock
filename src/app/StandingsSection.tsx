@@ -23,9 +23,6 @@ interface StandingsSectionProps {
 
 /**
  * 首頁的本季戰況：雙積分榜前幾名。
- *
- * 區塊的 `data-accent` 是積分領先車隊的代表色 —— 滾到這裡時頂部進度條
- * 會變成那個顏色（見 ScrollProgress）。
  */
 export const StandingsSection = ({
   season,
@@ -35,12 +32,10 @@ export const StandingsSection = ({
   teams,
 }: StandingsSectionProps): JSX.Element => {
   const { container, item } = useEntrance();
-  const leaderColour = teams[0]?.colour ?? undefined;
 
   return (
     <motion.section
       className="standings"
-      data-accent={leaderColour}
       variants={container}
       initial="hidden"
       whileInView="shown"

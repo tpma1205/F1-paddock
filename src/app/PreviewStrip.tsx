@@ -6,8 +6,6 @@ import { useEntrance } from './motion.ts';
 interface PreviewStripProps {
   title: string;
   href: string;
-  /** 投給頂部進度條與頁面底色的代表色；沒有則回到骨幹紅。 */
-  accent?: string | undefined;
   children: React.ReactNode;
 }
 
@@ -17,13 +15,12 @@ interface PreviewStripProps {
  * 卡片元件與完整列表頁共用（src/app/cards），這裡只負責排版。
  * 橫向捲動用原生 overflow + scroll-snap，不引入輪播套件。
  */
-export const PreviewStrip = ({ title, href, accent, children }: PreviewStripProps): JSX.Element => {
+export const PreviewStrip = ({ title, href, children }: PreviewStripProps): JSX.Element => {
   const { container, item } = useEntrance();
 
   return (
     <motion.section
       className="strip"
-      data-accent={accent}
       variants={container}
       initial="hidden"
       whileInView="shown"

@@ -7,7 +7,6 @@ import { formatFetchedAt, formatTimeZoneLabel, resolveTimeZone } from './app/for
 import { LiveTimedContext } from './app/liveData.ts';
 import { RefreshControl } from './app/RefreshControl.tsx';
 import { useLiveRefresh } from './app/useLiveRefresh.ts';
-import { ScrollProgress } from './app/ScrollProgress.tsx';
 import { Breadcrumb } from './app/Breadcrumb.tsx';
 import { HomePage } from './pages/HomePage.tsx';
 
@@ -42,7 +41,6 @@ export const App = (): JSX.Element => {
 
   return (
     <BrowserRouter basename={BASENAME}>
-      <ScrollProgress />
       <div className="page">
         <header className="topbar">
           <NavLink to="/" className="brand" end>

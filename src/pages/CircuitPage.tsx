@@ -60,10 +60,6 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
         </p>
       </motion.header>
 
-      {/*
-       * 平面圖不放進 stagger —— 它的動畫由滾動驅動（見 TrackMap），
-       * 不該再疊一層進場淡入。
-       */}
       {outline ? (
         <figure className="circuit-detail__figure">
           <button
@@ -72,7 +68,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
             onClick={() => zoomDialog.current?.showModal()}
             aria-label="放大檢視賽道平面圖"
           >
-            <TrackMap coordinates={outline.coordinates} mode="scroll" title={`${circuit.name} 平面圖`} />
+            <TrackMap coordinates={outline.coordinates} showStart title={`${circuit.name} 平面圖`} />
           </button>
           <figcaption>賽道平面圖，紅點為起跑線。點擊可放大。</figcaption>
         </figure>
@@ -154,7 +150,7 @@ export const CircuitPage = ({ season, circuits }: CircuitPageProps): JSX.Element
           }}
         >
           <div className="zoom-dialog__body">
-            <TrackMap coordinates={outline.coordinates} title={`${circuit.name} 平面圖（放大）`} />
+            <TrackMap coordinates={outline.coordinates} showStart title={`${circuit.name} 平面圖（放大）`} />
           </div>
           <button type="button" className="zoom-dialog__close" onClick={() => zoomDialog.current?.close()}>
             關閉
