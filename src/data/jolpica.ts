@@ -71,7 +71,8 @@ interface RawDriver {
   familyName: string;
   /** YYYY-MM-DD */
   dateOfBirth?: string;
-  nationality: string;
+  /** 新登場的代打車手，Jolpica 有時先建檔、晚點才補國籍（2026 平川亮即是）。 */
+  nationality?: string;
 }
 
 interface RawConstructor {
@@ -258,7 +259,7 @@ const toDriverRef = (raw: RawDriver, openF1: ReadonlyMap<string, OpenF1DriverInf
   permanentNumber: raw.permanentNumber ?? null,
   givenName: raw.givenName,
   familyName: raw.familyName,
-  nationality: raw.nationality,
+  nationality: raw.nationality ?? '',
   headshotUrl: (raw.code && openF1.get(raw.code)?.headshotUrl) || null,
   dateOfBirth: raw.dateOfBirth ?? null,
   debutSeason: debuts[raw.driverId] ?? null,

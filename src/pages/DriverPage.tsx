@@ -80,19 +80,21 @@ export const DriverPage = ({ season, drivers }: DriverPageProps): JSX.Element =>
             </dd>
           </div>
         )}
-        <div className="facts__item">
-          <dt>國籍</dt>
-          <dd className="facts__nationality">
-            {nationality ? (
-              <>
-                <Flag country={nationality.country} />
-                {nationality.zh}
-              </>
-            ) : (
-              driver.nationality
-            )}
-          </dd>
-        </div>
+        {driver.nationality && (
+          <div className="facts__item">
+            <dt>國籍</dt>
+            <dd className="facts__nationality">
+              {nationality ? (
+                <>
+                  <Flag country={nationality.country} />
+                  {nationality.zh}
+                </>
+              ) : (
+                driver.nationality
+              )}
+            </dd>
+          </div>
+        )}
         {driver.permanentNumber && (
           <div className="facts__item">
             <dt>車號</dt>
