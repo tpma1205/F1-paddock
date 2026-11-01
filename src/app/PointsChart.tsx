@@ -1,6 +1,7 @@
 import { useId, useMemo, useState, type JSX } from 'react';
 import type { PointsProgression, ProgressionSeries } from '../domain/types.ts';
 import { localisedDriver } from '../data/localisation.ts';
+import { DASHARRAY, lineStyleFor, type LineStyle } from './lineStyle.ts';
 
 /** 高亮的線數 —— 超過這個數字，顏色就分不開了（品牌色彼此太近，見票 10 的驗證器結果）。 */
 const HIGHLIGHT_COUNT = 6;
@@ -11,7 +12,6 @@ const TOOLTIP_ROWS = 8;
 const WIDTH = 800;
 const HEIGHT = 360;
 const PAD = { top: 20, right: 64, bottom: 36, left: 44 };
-const DASH = '7 5';
 
 interface PointsChartProps {
   progression: PointsProgression;
@@ -26,8 +26,8 @@ const codeOf = (series: ProgressionSeries): string =>
 const nameOf = (series: ProgressionSeries): string =>
   localisedDriver(series.driver.id)?.zh ?? series.driver.familyName;
 
-/** 同隊第二位用虛線 —— 同色不同紋，identity 不靠顏色。 */
-const isDashed = (series: ProgressionSeries): boolean => series.teammateIndex === 1;
+/** 同隊同色不同紋：實線、虛線、點線（見 lineStyle.ts）。 */
+const styleOf = (series: ProgressionSeries): LineStyle => lineStyleFor(series.teammateIndex);
 const colourOf = (series: ProgressionSeries): string => series.team?.colour ?? 'var(--text-dim)';
 
 /**
@@ -149,7 +149,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
               className="chart__line"
               d={pathOf(s)}
               stroke={colourOf(s)}
-              strokeDasharray={isDashed(s) ? DASH : undefined}
+              strokeDasharray={DASHARRAY[styleOf(s)]}
             />
           ))}
 
@@ -211,7 +211,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
               <li key={s.driver.id}>
                 <span
                   className="chart__key"
-                  style={{ borderColor: colourOf(s), borderStyle: isDashed(s) ? 'dashed' : 'solid' }}
+                  style={{ borderColor: colourOf(s), borderStyle: styleOf(s) }}
                 />
                 <strong>{value}</strong>
                 <span>{nameOf(s)}</span>
@@ -228,7 +228,7 @@ export const PointsChart = ({ progression }: PointsChartProps): JSX.Element => {
           <li key={s.driver.id}>
             <span
               className="chart__key"
-              style={{ borderColor: colourOf(s), borderStyle: isDashed(s) ? 'dashed' : 'solid' }}
+              style={{ borderColor: colourOf(s), borderStyle: styleOf(s) }}
             />
             {nameOf(s)}
           </li>

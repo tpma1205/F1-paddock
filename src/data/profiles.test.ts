@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { bundledSnapshot } from './snapshot.ts';
 import { CIRCUIT_PROFILES, DRIVER_PROFILES, TEAM_PROFILES } from './profiles.ts';
-import { TEAM_NAMES } from './localisation.ts';
+import { DRIVER_NAMES, TEAM_NAMES } from './localisation.ts';
 
 const teamIds = new Set(bundledSnapshot.teamStandings.map((s) => s.team.id));
 const driverIds = new Set(bundledSnapshot.driverStandings.map((s) => s.driver.id));
@@ -16,7 +16,9 @@ const warnMissing = (kind: string, ids: Set<string>, table: Record<string, unkno
 describe('Profile 資料表', () => {
   it('每個鍵都對到本季存在的實體 —— 打錯 ID 立刻失敗', () => {
     expect(Object.keys(TEAM_PROFILES).filter((id) => !teamIds.has(id))).toEqual([]);
-    expect(Object.keys(DRIVER_PROFILES).filter((id) => !driverIds.has(id))).toEqual([]);
+    // 車手另認譯名表：repo 內的快照可能比線上資料舊，季中新登場的代打車手只在
+    // 新抓的資料裡；譯名表是人工維護的車手名冊，鍵打錯一樣會被抓到。
+    expect(Object.keys(DRIVER_PROFILES).filter((id) => !driverIds.has(id) && !(id in DRIVER_NAMES))).toEqual([]);
     expect(Object.keys(CIRCUIT_PROFILES).filter((id) => !circuitIds.has(id))).toEqual([]);
   });
 
