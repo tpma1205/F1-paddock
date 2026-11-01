@@ -7,7 +7,8 @@ describe('國籍對照表', () => {
   it('涵蓋本季全部車手的國籍 —— 缺一個就失敗', () => {
     const missing = bundledSnapshot.driverStandings
       .map((s) => s.driver.nationality)
-      .filter((n) => localisedNationality(n) === null);
+      // 空字串是 Jolpica 尚未建檔國籍（上游缺資料），不是對照表漏了；畫面不顯示國籍即可。
+      .filter((n) => n !== '' && localisedNationality(n) === null);
     expect(missing).toEqual([]);
   });
 

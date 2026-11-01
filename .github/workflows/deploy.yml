@@ -10,10 +10,14 @@
 #   使用者仍可在頁面頁尾按「立即更新」（docs/adr/0005）。
 # - workflow_dispatch：隨時手動更新
 #
-# 兩條規則（docs/adr/0001、0004）：
+# 三條規則（docs/adr/0001、0004）：
 # - 抓取失敗沿用既有快照繼續建置，第三方服務的故障不該讓部署紅字
 # - 抓到的資料不 commit 回 repo；只有「一季結束的最終狀態」與「新公布的下一季」
 #   會被封存 commit 一次（scripts/archive-snapshots.ts 決定）
+# - 測試分兩段：抓取「前」對 repo 內的快照跑，失敗＝程式壞了，擋部署；抓取「後」
+#   對新資料再跑一次，失敗＝新資料有東西要人工補（典型是新車手缺中文譯名），
+#   照常部署（畫面會降級顯示英文），但 data-check job 會讓整個 run 紅字寄信提醒。
+#   曾經因為代打車手平川亮缺譯名，讓排程部署連續失敗、網站停在舊資料。
 
 name: Deploy
 
@@ -37,6 +41,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      data-check: ${{ steps.data-check.outcome }}
     steps:
       - uses: actions/checkout@v4
 
@@ -46,6 +52,10 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      # 對 repo 內 commit 的快照跑：結果只取決於程式碼，失敗就是程式壞了。
+      - name: 測試（既有快照）
+        run: npm test
 
       # 抓取腳本本身就會在失敗時沿用既有快照並以 0 退出，這裡不需要 continue-on-error。
       - name: 抓取最新資料
@@ -65,7 +75,10 @@ jobs:
           git commit -m "封存快照 [skip ci]" -m "由 Deploy workflow 自動 commit：該季已結束，或新一季賽程首次出現。"
           git push
 
-      - name: 測試
+      # 對剛抓到的資料再跑一次。失敗不擋部署，由下方 data-check job 負責紅字提醒。
+      - name: 檢查新資料（譯名、國籍等涵蓋率）
+        id: data-check
+        continue-on-error: true
         run: npm test
 
       - name: 建置（含型別檢查與路由預產生）
@@ -90,3 +103,14 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # 新資料檢查失敗時，網站已照常部署；這個 job 只負責讓 run 紅字、寄通知信。
+  # 修法通常是在 src/data/localisation.ts 補上新車手／車隊／賽道的中文名。
+  data-check:
+    needs: [build, deploy]
+    if: needs.build.outputs.data-check == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "::error::新抓到的資料沒通過涵蓋率測試（網站已照常部署）。請到 build job 的「檢查新資料」步驟看缺了什麼，通常是 src/data/localisation.ts 要補新車手的中文名。"
+          exit 1
