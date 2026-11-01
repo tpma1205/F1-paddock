@@ -26,6 +26,9 @@ import {
   TIMED_KINDS,
   carryForwardTimedResults,
   matchOpenF1Session,
+  mergeOpenF1Drivers,
+  codesMissingHeadshot,
+  latestWithHeadshot,
   type RawOpenF1Driver,
   type RawOpenF1Session,
   type RawOpenF1SessionResult,
@@ -176,10 +179,17 @@ const carryForwardOpenF1 = (previous: Snapshot): RawOpenF1Driver[] =>
 /**
  * OpenF1 只補充顏色與照片，**它失效不該阻止快照產出**。失敗時優先沿用
  * 上一份快照的顏色與照片；連上一份都沒有，才產出無顏色的快照由畫面降級。
+ *
+ * 成功時，`session_key=latest` 只涵蓋最新一場的出賽者（見 mergeOpenF1Drivers），
+ * 缺的人先用上一份快照補，再依縮寫個別查 —— 代打車手與被換下的正式車手才都有照片。
  */
-const getOpenF1Drivers = async (previous: Snapshot | null): Promise<RawOpenF1Driver[]> => {
+const getOpenF1Drivers = async (
+  previous: Snapshot | null,
+  seasonCodes: ReadonlyArray<string | null | undefined>,
+): Promise<RawOpenF1Driver[]> => {
+  let latest: RawOpenF1Driver[];
   try {
-    return await getJson<RawOpenF1Driver[]>(OPENF1_DRIVERS);
+    latest = await getJson<RawOpenF1Driver[]>(OPENF1_DRIVERS);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (previous) {
@@ -190,6 +200,23 @@ const getOpenF1Drivers = async (previous: Snapshot | null): Promise<RawOpenF1Dri
     console.warn(`⚠ OpenF1 抓取失敗（${message}）且無上一份快照，本次快照將沒有代表色與車手照片。`);
     return [];
   }
+
+  const known = mergeOpenF1Drivers(latest, previous ? carryForwardOpenF1(previous) : []);
+  const looked: RawOpenF1Driver[] = [];
+  for (const code of codesMissingHeadshot(seasonCodes, known)) {
+    await sleep(OPENF1_PAUSE_MS);
+    try {
+      const entries = await getOpenF1Json<RawOpenF1Driver[]>(`${OPENF1}/drivers?name_acronym=${encodeURIComponent(code)}`);
+      const found = latestWithHeadshot(entries);
+      // 只取照片：歷來紀錄可能來自別隊（例如前一年的練習賽），代表色不可信。
+      if (found) looked.push({ ...found, team_colour: null });
+      else console.warn(`⚠ OpenF1 查無 ${code} 的照片，畫面以縮寫替代。`);
+    } catch (error) {
+      console.warn(`⚠ OpenF1 查詢 ${code} 失敗（${error instanceof Error ? error.message : String(error)}），畫面以縮寫替代。`);
+    }
+  }
+  if (looked.length > 0) console.log(`  OpenF1：依縮寫補查 ${looked.length} 位車手的照片`);
+  return mergeOpenF1Drivers(known, looked);
 };
 
 /**
@@ -300,7 +327,10 @@ const main = async (): Promise<void> => {
       `${BASE}/constructorstandings/?format=json&limit=30`,
     );
     const previous = loadExistingSnapshot();
-    const openF1Drivers = await getOpenF1Drivers(previous);
+    const seasonCodes = (driverStandings.MRData.StandingsTable.StandingsLists[0]?.DriverStandings ?? []).map(
+      ({ Driver }) => Driver.code,
+    );
+    const openF1Drivers = await getOpenF1Drivers(previous, seasonCodes);
     const debuts = await getDebuts(driverStandings, previous);
 
     // 整季賽果／衝刺賽／排位賽分頁抓取：Jolpica 把 limit 上限鎖在 100，一站

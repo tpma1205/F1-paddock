@@ -4,8 +4,16 @@ import fp1Rows from './__fixtures__/openf1-session-result-fp1.json' with { type:
 import sqRows from './__fixtures__/openf1-session-result-sq.json' with { type: 'json' };
 import meetingDrivers from './__fixtures__/openf1-drivers-meeting.json' with { type: 'json' };
 import { buildFixtureSnapshot, buildFixtureSnapshotWithTimed, fixtureTimedResults } from './__fixtures__/buildFixtureSnapshot.ts';
-import { carryForwardTimedResults, matchOpenF1Session, toTimedResults, TIMED_KINDS } from './openf1.ts';
-import type { RawOpenF1SessionResult } from './openf1.ts';
+import {
+  carryForwardTimedResults,
+  codesMissingHeadshot,
+  latestWithHeadshot,
+  matchOpenF1Session,
+  mergeOpenF1Drivers,
+  toTimedResults,
+  TIMED_KINDS,
+} from './openf1.ts';
+import type { RawOpenF1Driver, RawOpenF1SessionResult } from './openf1.ts';
 
 const snapshot = buildFixtureSnapshot();
 const italy = snapshot.weekends.find((w) => w.round === 13)!;
@@ -136,5 +144,39 @@ describe('carryForwardTimedResults —— OpenF1 失效時沿用上一份 sideca
   it('沒有上一份時原樣回傳', () => {
     const next = { '1:fp1': [] };
     expect(carryForwardTimedResults(next, null)).toBe(next);
+  });
+});
+
+describe('補齊 OpenF1 車手清單 —— 代打週末不讓任何人的照片消失', () => {
+  const driver = (code: string, headshot: string | null, colour: string | null = 'B6BABD'): RawOpenF1Driver => ({
+    driver_number: 0,
+    name_acronym: code,
+    full_name: code,
+    team_name: 'Haas F1 Team',
+    team_colour: colour,
+    headshot_url: headshot,
+  });
+
+  it('最新一場沒有被換下的正式車手時，由上一份快照補上；兩邊都有時最新優先', () => {
+    const latest = [driver('BEA', 'new-bea'), driver('HIR', 'hir')];
+    const previous = [driver('BEA', 'old-bea'), driver('OCO', 'oco')];
+    const merged = mergeOpenF1Drivers(latest, previous);
+    expect(merged.map((d) => [d.name_acronym, d.headshot_url])).toEqual([
+      ['BEA', 'new-bea'],
+      ['HIR', 'hir'],
+      ['OCO', 'oco'],
+    ]);
+  });
+
+  it('只對本季有縮寫、且已知清單裡沒有照片的車手個別查詢', () => {
+    const known = [driver('BEA', 'bea'), driver('OCO', null)];
+    expect(codesMissingHeadshot(['BEA', 'OCO', 'HIR', null, undefined, 'HIR'], known)).toEqual(['OCO', 'HIR']);
+  });
+
+  it('依縮寫查到的歷來紀錄取最後一筆有照片的', () => {
+    expect(latestWithHeadshot([driver('HIR', 'y2024'), driver('HIR', 'y2026'), driver('HIR', null)])?.headshot_url).toBe(
+      'y2026',
+    );
+    expect(latestWithHeadshot([driver('HIR', null)])).toBeNull();
   });
 });

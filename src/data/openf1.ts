@@ -56,6 +56,47 @@ export const indexOpenF1Drivers = (
   return byCode;
 };
 
+/**
+ * 把「最新一場」的車手清單補齊成「本季每位車手」。
+ *
+ * `drivers?session_key=latest` 只有**最新那一場**有出賽的人：代打車手上場的
+ * 週末，被換下的正式車手不在名單裡；代打結束後，代打車手也不在了。直接用會讓
+ * 這些人的照片與代表色消失。
+ *
+ * 依序補上：最新一場 → 上一份快照合成的清單 → 依縮寫個別查到的清單。
+ * `indexOpenF1Drivers` 同一縮寫只取第一筆，所以越新的來源排越前面、優先採用。
+ */
+export const mergeOpenF1Drivers = (
+  ...sources: ReadonlyArray<ReadonlyArray<RawOpenF1Driver>>
+): RawOpenF1Driver[] => {
+  const seen = new Set<string>();
+  const merged: RawOpenF1Driver[] = [];
+  for (const source of sources) {
+    for (const driver of source) {
+      if (seen.has(driver.name_acronym)) continue;
+      seen.add(driver.name_acronym);
+      merged.push(driver);
+    }
+  }
+  return merged;
+};
+
+/** 本季車手中，在已知清單裡找不到照片的縮寫 —— 需要個別查詢的對象。 */
+export const codesMissingHeadshot = (
+  seasonCodes: ReadonlyArray<string | null | undefined>,
+  known: ReadonlyArray<RawOpenF1Driver>,
+): string[] => {
+  const withHeadshot = new Set(known.filter((d) => d.headshot_url).map((d) => d.name_acronym));
+  return [...new Set(seasonCodes)].filter((code): code is string => !!code && !withHeadshot.has(code));
+};
+
+/**
+ * `drivers?name_acronym=XXX` 會回傳該車手**歷來所有場次**的紀錄（由舊到新），
+ * 取最後一筆有照片的 —— 照片網址含年份與車隊，越新越貼近現況。
+ */
+export const latestWithHeadshot = (entries: ReadonlyArray<RawOpenF1Driver>): RawOpenF1Driver | null =>
+  [...entries].reverse().find((d) => !!d.headshot_url) ?? null;
+
 // ---------------------------------------------------------------- 場次結果
 
 /**

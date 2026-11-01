@@ -400,7 +400,7 @@ export interface ProgressionSeries {
   team: TeamRef | null;
   /** 與 PointsProgression.rounds 對齊；正賽 + 衝刺賽累積。 */
   cumulative: number[];
-  /** 同隊第幾位（0 或 1）—— 同隊顏色相同，以此區分實線／虛線。 */
+  /** 同隊第幾位（0 起算，依積分榜順序）—— 同隊顏色相同，以此區分實線／虛線／點線。 */
   teammateIndex: number;
 }
 
