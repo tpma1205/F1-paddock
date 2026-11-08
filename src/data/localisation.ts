@@ -66,6 +66,7 @@ export const DRIVER_NAMES: Record<string, LocalisedName> = {
   bottas: name('波塔斯'),
   perez: name('培瑞茲'),
   ryo_hirakawa: name('平川亮'),
+  rafael_camara: provisional('卡馬拉'),
 };
 
 /** 賽道 —— 以 Jolpica 的 circuitId 為鍵。 */
