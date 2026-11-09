@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildFixtureSnapshot } from './__fixtures__/buildFixtureSnapshot.ts';
+import type { RaceResult } from '../domain/types.ts';
 import {
+  markUnknownGrids,
   normaliseSeason,
   type RawDriverStandingsResponse,
   type RawRacesResponse,
@@ -389,5 +391,33 @@ describe('normaliseSeason 的降級行為', () => {
 
     expect(snapshot.driverStandings[0]?.driver.code).toBeNull();
     expect(snapshot.driverStandings[0]?.driver.permanentNumber).toBeNull();
+  });
+});
+
+describe('markUnknownGrids —— 賽後 Jolpica 還沒補起跑位置', () => {
+  const row = (position: number, grid: number | null): RaceResult => ({
+    position,
+    positionText: String(position),
+    classified: true,
+    points: 0,
+    status: 'Finished',
+    laps: 71,
+    grid,
+    time: null,
+    fastestLap: false,
+    driverId: `d${position}`,
+    teamId: 't',
+  });
+
+  it('整場起跑位置全是 0 或空值 → 全部改為 null（不是全員維修道起跑）', () => {
+    expect(markUnknownGrids([row(1, 0), row(2, 0), row(3, null)]).map((r) => r.grid)).toEqual([null, null, null]);
+  });
+
+  it('只有部分車手為 0 → 是真的維修道起跑，保留', () => {
+    expect(markUnknownGrids([row(1, 1), row(2, 0), row(3, 2)]).map((r) => r.grid)).toEqual([1, 0, 2]);
+  });
+
+  it('沒有賽果時原樣回傳', () => {
+    expect(markUnknownGrids([])).toEqual([]);
   });
 });

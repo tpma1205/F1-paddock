@@ -104,7 +104,8 @@ interface RawResult {
   position: string;
   positionText: string;
   points: string;
-  grid: string;
+  /** 賽後剛上線時可能缺漏或為空字串。 */
+  grid?: string;
   laps: string;
   status: string;
   Driver: RawDriver;
@@ -274,7 +275,7 @@ const toRaceResult = (raw: RawResult): RaceResult => ({
   points: Number(raw.points),
   status: raw.status,
   laps: Number(raw.laps),
-  grid: Number(raw.grid),
+  grid: raw.grid !== undefined && raw.grid !== '' && Number.isFinite(Number(raw.grid)) ? Number(raw.grid) : null,
   time: raw.Time?.time ?? null,
   fastestLap: raw.FastestLap?.rank === '1',
   driverId: raw.Driver.driverId,
@@ -313,6 +314,25 @@ const groupByRound = <Key extends string, Row, Out extends { position: number }>
 
   for (const rows of byRound.values()) rows.sort((a, b) => a.position - b.position);
   return byRound;
+};
+
+/**
+ * 整場比賽的起跑位置都是 0 或空值 → 當成「Jolpica 還沒補」，全部改為 null。
+ *
+ * 0 本來代表維修道起跑，但現實中不可能全員都從維修道出發；Jolpica 賽後會先上
+ * 名次、晚幾小時才補起跑位置，這段期間抓到的資料就是全 0。只有部分車手為 0
+ * 時是真的維修道起跑，保留不動。
+ */
+export const markUnknownGrids = (rows: RaceResult[]): RaceResult[] =>
+  rows.length > 0 && rows.every((r) => !r.grid) ? rows.map((r) => ({ ...r, grid: null })) : rows;
+
+const groupRaceResults = <Key extends string>(
+  pages: ReadonlyArray<RawPagedResponse<Key, RawResult>> | undefined,
+  key: Key,
+): ReadonlyMap<number, RaceResult[]> | null => {
+  const byRound = groupByRound(pages, key, toRaceResult);
+  if (!byRound) return null;
+  return new Map([...byRound].map(([round, rows]) => [round, markUnknownGrids(rows)]));
 };
 
 interface PerRound {
@@ -461,8 +481,8 @@ export const normaliseRoundResults = (
   round: number,
   { results, sprints, qualifying }: RoundResultsInput,
 ): { results: RaceResult[] | null; sprintResults: RaceResult[] | null; qualifying: QualifyingResult[] | null } => ({
-  results: groupByRound(results && [results], 'Results', toRaceResult)?.get(round) ?? null,
-  sprintResults: groupByRound(sprints && [sprints], 'SprintResults', toRaceResult)?.get(round) ?? null,
+  results: groupRaceResults(results && [results], 'Results')?.get(round) ?? null,
+  sprintResults: groupRaceResults(sprints && [sprints], 'SprintResults')?.get(round) ?? null,
   qualifying: groupByRound(qualifying && [qualifying], 'QualifyingResults', toQualifyingResult)?.get(round) ?? null,
 });
 
@@ -552,8 +572,8 @@ export const normaliseSeason = ({
   const openF1 = indexOpenF1Drivers(openF1Drivers);
   const colours = deriveTeamColours(rawDrivers, openF1);
   const perRound: PerRound = {
-    results: groupByRound(results, 'Results', toRaceResult),
-    sprints: groupByRound(sprints, 'SprintResults', toRaceResult),
+    results: groupRaceResults(results, 'Results'),
+    sprints: groupRaceResults(sprints, 'SprintResults'),
     qualifying: groupByRound(qualifying, 'QualifyingResults', toQualifyingResult),
   };
   const podiums = tallyPodiums(perRound.results);

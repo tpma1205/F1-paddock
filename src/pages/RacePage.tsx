@@ -27,6 +27,9 @@ import { SESSION_SHORT_LABEL, formatRaceDate } from '../app/formatting.ts';
 
 
 /** Jolpica 的狀態字串 → 介面文字。未列的原樣顯示。 */
+/** 起跑位置：0 是維修道起跑；null 是 Jolpica 還沒補上（見 RaceResult.grid）。 */
+const gridLabel = (grid: number | null): string => (grid === null ? '—' : grid > 0 ? `P${grid}` : '維修道');
+
 const STATUS_LABEL: Record<string, string> = {
   Finished: '完賽',
   Lapped: '落後一圈以上',
@@ -461,7 +464,7 @@ const ResultRow = ({ result }: { result: ResultView }): JSX.Element => {
           </span>
           <span className="result__cell result__cell--secondary">
             <span className="result__label">起跑</span>
-            {result.grid > 0 ? `P${result.grid}` : '維修道'}
+            {gridLabel(result.grid)}
           </span>
           <span className="result__cell result__cell--secondary">
             <span className="result__label">圈數</span>
@@ -485,7 +488,7 @@ const ResultRow = ({ result }: { result: ResultView }): JSX.Element => {
         <dl className="result__more">
           <div>
             <dt>起跑</dt>
-            <dd>{result.grid > 0 ? `P${result.grid}` : '維修道'}</dd>
+            <dd>{gridLabel(result.grid)}</dd>
           </div>
           <div>
             <dt>圈數</dt>
