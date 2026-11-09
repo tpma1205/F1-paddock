@@ -106,7 +106,12 @@ export interface RaceResult {
   /** Jolpica 的狀態字串："Finished"、"Lapped"、"Retired"、"Did not start"… */
   status: string;
   laps: number;
-  grid: number;
+  /**
+   * 起跑位置；0 是 Jolpica 表示「維修道起跑」的寫法。null 表示還不知道 ——
+   * Jolpica 賽後先上名次、晚幾小時才補起跑位置，這段期間整場的 grid 全是 0
+   * 或空值（2026 巴西站曾因此全員顯示為維修道起跑），見 markUnknownGrids。
+   */
+  grid: number | null;
   /** 冠軍為總時間，其餘為與冠軍的差距；未完賽者為 null。 */
   time: string | null;
   fastestLap: boolean;
